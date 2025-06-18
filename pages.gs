@@ -742,3 +742,11 @@ function getStatisticsHTML() {
     </div>
   `;
 }
+
+// ===== 숫자 포맷 함수 =====
+function formatNumber(num) {
+  if (typeof num !== 'number') {
+    num = parseFloat(num) || 0;
+  }
+  return new Intl.NumberFormat('ko-KR').format(num);
+}
