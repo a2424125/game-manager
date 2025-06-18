@@ -285,7 +285,6 @@ function initializeBossRecordsSheet() {
   }
 }
 
-// ===== getMembers 함수 수정 (보스 참여횟수 포함) =====
 function getMembers() {
   console.log('회원 목록 조회 시작');
   
@@ -296,7 +295,18 @@ function getMembers() {
       return [];
     }
     
+    // 시트에 데이터가 있는지 확인
+    const lastRow = memberSheet.getLastRow();
+    console.log('시트 마지막 행:', lastRow);
+    
+    if (lastRow < 2) {
+      console.log('시트에 데이터가 없습니다 (헤더만 존재)');
+      return [];
+    }
+    
     const memberData = memberSheet.getDataRange().getValues();
+    console.log('읽어온 전체 데이터 행 수:', memberData.length);
+    
     const members = [];
     
     // 보스 참여 기록 가져오기
@@ -304,15 +314,28 @@ function getMembers() {
     let bossData = [];
     if (bossSheet && bossSheet.getLastRow() > 1) {
       bossData = bossSheet.getDataRange().getValues();
+      console.log('보스 참여 기록 행 수:', bossData.length);
     }
     
+    // 각 회원 데이터 처리
     for (let i = 1; i < memberData.length; i++) {
-      // 빈 행 건너뛰기
+      // 디버깅을 위한 로그
+      console.log(`행 ${i + 1} 처리 중:`, memberData[i]);
+      
+      // 회원ID와 닉네임이 있는 행만 처리
       if (!memberData[i][0] || !memberData[i][1]) {
+        console.log(`행 ${i + 1}: 빈 데이터로 건너뜀`);
         continue;
       }
       
-      const nickname = memberData[i][1];
+      // 닉네임이 빈 문자열이거나 공백만 있는 경우 건너뛰기
+      const nickname = String(memberData[i][1]).trim();
+      if (!nickname) {
+        console.log(`행 ${i + 1}: 닉네임이 비어있어 건너뜀`);
+        continue;
+      }
+      
+      console.log(`처리할 회원: ${nickname}`);
       
       // 해당 회원의 보스 참여횟수 계산
       let participationCount = 0;
@@ -328,18 +351,22 @@ function getMembers() {
         }
       }
       
-      members.push({
-        id: memberData[i][0],
+      // 회원 정보 객체 생성
+      const memberInfo = {
+        id: String(memberData[i][0] || ''),
         nickname: nickname,
-        guild: memberData[i][2],
-        server: memberData[i][3],
-        job: memberData[i][4],              // 직업 필드
-        joinDate: memberData[i][6],         // 가입일
-        status: memberData[i][7],           // 상태
-        isAdmin: memberData[i][8] === 'Y',  // 관리자 여부
-        participationCount: participationCount,  // 보스 참여횟수
-        lastParticipation: lastParticipation     // 마지막 참여일
-      });
+        guild: String(memberData[i][2] || ''),
+        server: String(memberData[i][3] || ''),
+        job: String(memberData[i][4] || ''),              
+        joinDate: memberData[i][6] || new Date(),         
+        status: String(memberData[i][7] || '활성'),           
+        isAdmin: String(memberData[i][8] || 'N') === 'Y',
+        participationCount: participationCount,
+        lastParticipation: lastParticipation
+      };
+      
+      members.push(memberInfo);
+      console.log(`회원 추가됨: ${memberInfo.nickname}, 참여횟수: ${participationCount}`);
     }
     
     // 참여횟수 순으로 정렬
@@ -348,12 +375,92 @@ function getMembers() {
     });
     
     console.log('회원 목록 조회 완료, 총 인원:', members.length);
+    console.log('조회된 회원들:', members.map(m => m.nickname));
+    
     return members;
     
   } catch (error) {
     console.error('회원 목록 조회 오류:', error);
+    console.error('오류 스택:', error.stack);
     return [];
   }
+}
+
+// ===== 디버깅을 위한 추가 함수 =====
+function debugMemberSheet() {
+  console.log('=== 회원 시트 디버깅 시작 ===');
+  
+  try {
+    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!memberSheet) {
+      console.log('❌ 회원 정보 시트를 찾을 수 없습니다');
+      console.log('시트 이름 확인:', SHEET_NAMES.MEMBERS);
+      return;
+    }
+    
+    console.log('✅ 회원 정보 시트 찾음');
+    console.log('시트 이름:', memberSheet.getName());
+    console.log('마지막 행:', memberSheet.getLastRow());
+    console.log('마지막 열:', memberSheet.getLastColumn());
+    
+    // 헤더 확인
+    if (memberSheet.getLastRow() >= 1) {
+      const headers = memberSheet.getRange(1, 1, 1, memberSheet.getLastColumn()).getValues()[0];
+      console.log('헤더:', headers);
+    }
+    
+    // 실제 데이터 몇 개 확인
+    if (memberSheet.getLastRow() >= 2) {
+      const sampleData = memberSheet.getRange(2, 1, Math.min(5, memberSheet.getLastRow() - 1), memberSheet.getLastColumn()).getValues();
+      console.log('샘플 데이터:');
+      sampleData.forEach((row, index) => {
+        console.log(`행 ${index + 2}:`, row);
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ 디버깅 중 오류:', error);
+  }
+  
+  console.log('=== 회원 시트 디버깅 완료 ===');
+}
+
+// ===== 시트 이름 확인 함수 =====
+function checkAllSheets() {
+  console.log('=== 모든 시트 확인 ===');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheets = ss.getSheets();
+    
+    console.log('전체 시트 수:', sheets.length);
+    sheets.forEach((sheet, index) => {
+      console.log(`시트 ${index + 1}: "${sheet.getName()}" (행: ${sheet.getLastRow()}, 열: ${sheet.getLastColumn()})`);
+    });
+    
+    console.log('설정된 시트 이름들:');
+    Object.keys(SHEET_NAMES).forEach(key => {
+      console.log(`${key}: "${SHEET_NAMES[key]}"`);
+    });
+    
+  } catch (error) {
+    console.error('시트 확인 중 오류:', error);
+  }
+}
+
+// ===== 강제로 회원 목록 새로고침 =====
+function forceRefreshMembers() {
+  console.log('=== 강제 회원 목록 새로고침 ===');
+  
+  // 캐시 초기화
+  const cache = CacheService.getScriptCache();
+  cache.removeAll(['guild_members']);
+  
+  // 회원 목록 다시 조회
+  const members = getMembers();
+  console.log('새로고침 결과:', members.length, '명');
+  
+  return members;
 }
 
 // ===== 보스 참여 기록 함수 =====
