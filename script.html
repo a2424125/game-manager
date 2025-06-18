@@ -665,21 +665,195 @@ function displayBossStatisticsChart(bossStats) {
     console.log('보스 통계 차트 표시 완료');
 }
 
+// ===== 관리자 페이지 로드 - 수정된 부분 =====
 function loadAdmin() {
     if (!currentUser || !currentUser.isAdmin) {
         alert('관리자 권한이 필요합니다.');
         return;
     }
     
+    console.log('관리자 페이지 로드 시작');
     showLoader();
+    
     google.script.run
         .withSuccessHandler(function(html) {
+            console.log('관리자 HTML 로드 성공');
             document.getElementById('contentWrapper').innerHTML = html;
-            loadMembers();
+            
+            // 관리자 페이지 초기화
+            initializeAdminPage();
+            
             hideLoader();
         })
-        .withFailureHandler(onError)
+        .withFailureHandler(function(error) {
+            console.error('관리자 페이지 로드 실패:', error);
+            onError(error);
+        })
         .getAdminHTML();
+}
+
+// 관리자 페이지 초기화
+function initializeAdminPage() {
+    console.log('관리자 페이지 초기화');
+    
+    // 관리자 대시보드 데이터 로드
+    loadAdminDashboardData();
+    
+    // 관리자 회원 목록 로드
+    loadAdminMembersData();
+}
+
+// 관리자 대시보드 데이터 로드
+function loadAdminDashboardData() {
+    google.script.run
+        .withSuccessHandler(function(data) {
+            updateAdminDashboard(data);
+        })
+        .withFailureHandler(onError)
+        .getDashboardData();
+}
+
+// 관리자 회원 데이터 로드
+function loadAdminMembersData() {
+    google.script.run
+        .withSuccessHandler(function(members) {
+            displayAdminMembersTable(members);
+        })
+        .withFailureHandler(onError)
+        .getMembers();
+}
+
+// 관리자 대시보드 업데이트
+function updateAdminDashboard(data) {
+    // 통계 카드 업데이트 로직
+    console.log('관리자 대시보드 업데이트:', data);
+}
+
+// 관리자 회원 테이블 표시
+function displayAdminMembersTable(members) {
+    var tbody = document.querySelector('#adminMemberTable tbody');
+    if (!tbody) return;
+    
+    var html = '';
+    for (var i = 0; i < members.length; i++) {
+        var member = members[i];
+        var roleText = member.isAdmin ? '관리자' : '일반회원';
+        var statusClass = member.status === '활성' ? 'active' : 'inactive';
+        
+        html += '<tr>' +
+            '<td><input type="checkbox" class="member-checkbox" value="' + member.id + '"></td>' +
+            '<td>' + member.id + '</td>' +
+            '<td><strong>' + member.nickname + '</strong></td>' +
+            '<td>' + member.guild + '</td>' +
+            '<td>' + member.server + '</td>' +
+            '<td>' + (member.job || '-') + '</td>' +
+            '<td>' + new Date(member.joinDate).toLocaleDateString() + '</td>' +
+            '<td><span class="status-badge ' + statusClass + '">' + member.status + '</span></td>' +
+            '<td>' + roleText + '</td>' +
+            '<td>' +
+                '<button class="btn-icon" onclick="editMember(\'' + member.id + '\')" title="편집">' +
+                    '<span class="material-icons">edit</span>' +
+                '</button>' +
+                '<button class="btn-icon" onclick="toggleMemberStatus(\'' + member.id + '\')" title="상태변경">' +
+                    '<span class="material-icons">toggle_on</span>' +
+                '</button>' +
+            '</td>' +
+        '</tr>';
+    }
+    
+    if (html === '') {
+        html = '<tr><td colspan="10" style="text-align: center; color: #999;">등록된 회원이 없습니다.</td></tr>';
+    }
+    
+    tbody.innerHTML = html;
+}
+
+// 관리자 탭 전환
+function showAdminTab(tabName) {
+    console.log('관리자 탭 전환:', tabName);
+    
+    // 모든 탭 버튼에서 active 클래스 제거
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < tabBtns.length; i++) {
+        tabBtns[i].classList.remove('active');
+    }
+    
+    // 모든 탭 콘텐츠 숨김
+    var tabContents = document.querySelectorAll('.tab-content');
+    for (var i = 0; i < tabContents.length; i++) {
+        tabContents[i].style.display = 'none';
+    }
+    
+    // 클릭된 탭 버튼 활성화
+    var clickedBtn = null;
+    for (var i = 0; i < tabBtns.length; i++) {
+        var onclick = tabBtns[i].getAttribute('onclick');
+        if (onclick && onclick.includes(tabName)) {
+            clickedBtn = tabBtns[i];
+            break;
+        }
+    }
+    if (clickedBtn) {
+        clickedBtn.classList.add('active');
+    }
+    
+    // 해당 탭 콘텐츠 표시
+    var targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.style.display = 'block';
+    }
+    
+    // 탭별 데이터 로드
+    switch(tabName) {
+        case 'members':
+            loadAdminMembersData();
+            break;
+        case 'roles':
+            loadRoleManagementData();
+            break;
+        case 'settings':
+            loadSystemSettings();
+            break;
+    }
+}
+
+// 권한 관리 데이터 로드
+function loadRoleManagementData() {
+    google.script.run
+        .withSuccessHandler(function(roleData) {
+            displayRoleManagement(roleData);
+        })
+        .withFailureHandler(onError)
+        .getMembersByRole();
+}
+
+// 권한 관리 표시
+function displayRoleManagement(roleData) {
+    // 관리자 목록
+    var adminList = document.getElementById('adminList');
+    if (adminList && roleData.admin) {
+        adminList.innerHTML = roleData.admin.map(function(member) {
+            return '<span class="member-chip">' + member.nickname + '</span>';
+        }).join('');
+    }
+    
+    // 부관리자 목록
+    var subAdminList = document.getElementById('subAdminList');
+    if (subAdminList && roleData.subadmin) {
+        subAdminList.innerHTML = roleData.subadmin.map(function(member) {
+            return '<span class="member-chip">' + member.nickname + 
+                   ' <button onclick="removeMemberRole(\'' + member.id + '\')">×</button></span>';
+        }).join('');
+    }
+    
+    // 운영진 목록
+    var moderatorList = document.getElementById('moderatorList');
+    if (moderatorList && roleData.moderator) {
+        moderatorList.innerHTML = roleData.moderator.map(function(member) {
+            return '<span class="member-chip">' + member.nickname + 
+                   ' <button onclick="removeMemberRole(\'' + member.id + '\')">×</button></span>';
+        }).join('');
+    }
 }
 
 // 사이드바 토글
@@ -1026,10 +1200,93 @@ function updateInactiveMembers() {
             .withSuccessHandler(function() {
                 hideLoader();
                 alert('비활성 회원 업데이트가 완료되었습니다.');
-                loadMembers();
+                loadAdminMembersData();
             })
             .withFailureHandler(onError)
             .batchUpdateMemberStatus();
     }
+}
+
+// ===== 관리자 기능 함수들 =====
+function initializeAllSheets() {
+    if (confirm('모든 시트를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(function(result) {
+                hideLoader();
+                alert(result.message);
+            })
+            .withFailureHandler(onError)
+            .initializeAllSheets();
+    }
+}
+
+function searchAdminMembers(keyword) {
+    var rows = document.querySelectorAll('#adminMemberTable tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var nickname = row.cells[2].textContent.toLowerCase();
+        
+        if (nickname.includes(keyword.toLowerCase())) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function toggleAllMembers(checkbox) {
+    var checkboxes = document.querySelectorAll('.member-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = checkbox.checked;
+    }
+}
+
+function executeBulkAction() {
+    var action = document.getElementById('bulkAction').value;
+    if (!action) {
+        alert('작업을 선택해주세요.');
+        return;
+    }
+    
+    var selectedIds = [];
+    var checkboxes = document.querySelectorAll('.member-checkbox:checked');
+    for (var i = 0; i < checkboxes.length; i++) {
+        selectedIds.push(checkboxes[i].value);
+    }
+    
+    if (selectedIds.length === 0) {
+        alert('대상을 선택해주세요.');
+        return;
+    }
+    
+    if (confirm(selectedIds.length + '명에 대해 ' + action + ' 작업을 실행하시겠습니까?')) {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(function(result) {
+                hideLoader();
+                alert(result.message);
+                loadAdminMembersData();
+            })
+            .withFailureHandler(onError)
+            .executeBulkMemberAction(selectedIds, action);
+    }
+}
+
+function editMember(memberId) {
+    // 회원 편집 모달 열기 (추후 구현)
+    alert('회원 편집 기능은 준비 중입니다.');
+}
+
+function toggleMemberStatus(memberId) {
+    if (confirm('회원 상태를 변경하시겠습니까?')) {
+        // 회원 상태 토글 로직 (추후 구현)
+        alert('회원 상태 변경 기능은 준비 중입니다.');
+    }
+}
+
+function exportMembers() {
+    // 회원 목록 내보내기 (추후 구현)
+    alert('회원 목록 내보내기 기능은 준비 중입니다.');
 }
 </script>
