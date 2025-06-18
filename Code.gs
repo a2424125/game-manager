@@ -12,6 +12,24 @@ const SHEET_NAMES = {
   BOSS_LIST: '보스목록',
   PERMISSIONS: '권한설정',
   SYSTEM_SETTINGS: '시스템설정'
+// ===== 캐시 초기화 함수 =====
+function clearCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.removeAll(['guild_members', 'boss_statistics', 'guild_balance']);
+    
+    return { 
+      success: true, 
+      message: '캐시가 초기화되었습니다.' 
+    };
+    
+  } catch (error) {
+    console.error('캐시 초기화 오류:', error);
+    return { 
+      success: false, 
+      message: '캐시 초기화 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
 };
 
 // ===== 웹 앱 진입점 =====
@@ -41,106 +59,6 @@ function hashPassword(password) {
 }
 
 // ===== 인증 관련 함수 =====
-function login(nickname, password) {
-  const sheet = getSheet(SHEET_NAMES.MEMBERS);
-  const data = sheet.getDataRange().getValues();
-  const hashedPassword = hashPassword(password);
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === nickname && data[i][5] === hashedPassword && data[i][7] === '활성') {
-      return {
-        success: true,
-        user: {
-          id: data[i][0],
-          nickname: data[i][1],
-          guild: data[i][2],
-          server: data[i][3],
-          job: data[i][4],
-          isAdmin: data[i][8] === 'Y'
-        }
-      };
-    }
-  }
-  
-  return { success: false, message: '닉네임 또는 비밀번호가 일치하지 않습니다.' };
-}
-
-function register(userData) {
-  console.log('회원가입 시작:', userData);
-  
-  try {
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) {
-      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    // 중복 닉네임 체크
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === userData.nickname) {
-        return { success: false, message: '이미 존재하는 닉네임입니다.' };
-      }
-    }
-    
-    const lastRow = sheet.getLastRow();
-    const newId = 'M' + String(lastRow).padStart(4, '0');
-    const today = new Date();
-    const hashedPassword = hashPassword(userData.password);
-    
-    // 새로운 회원 정보 추가 (직업 필드 포함)
-    sheet.appendRow([
-      newId,                    // 회원ID
-      userData.nickname,        // 닉네임
-      userData.guild,          // 길드명
-      userData.server,         // 서버
-      userData.job,            // 직업 (추가됨)
-      hashedPassword,          // 비밀번호 (해시)
-      today,                   // 가입일
-      '활성',                  // 상태
-      'N'                      // 관리자 여부
-    ]);
-    
-    console.log('회원가입 성공:', newId);
-    return { success: true, message: '회원가입이 완료되었습니다.' };
-    
-  } catch (error) {
-    console.error('회원가입 오류:', error);
-    return { success: false, message: '회원가입 중 오류가 발생했습니다: ' + error.message };
-  }
-}
-
-// ===== 회원 정보 시트 초기화 함수도 수정 =====
-function initializeMembersSheet() {
-  console.log('회원 정보 시트 초기화 시작');
-  
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
-    
-    if (!sheet) {
-      console.log('회원 정보 시트 생성');
-      sheet = ss.insertSheet(SHEET_NAMES.MEMBERS);
-    }
-    
-    // 헤더가 없으면 추가
-    if (sheet.getLastRow() < 1) {
-      console.log('회원 정보 시트 헤더 추가');
-      sheet.appendRow([
-        '회원ID', '닉네임', '길드', '서버', '직업', 
-        '비밀번호', '가입일', '상태', '관리자'
-      ]);
-    }
-    
-    return { success: true, message: '회원 정보 시트 초기화 완료' };
-    
-  } catch (error) {
-    console.error('회원 정보 시트 초기화 오류:', error);
-    return { success: false, message: '회원 정보 시트 초기화 실패: ' + error.message };
-  }
-}
-
-// ===== login 함수도 수정 (직업 필드 인덱스 조정) =====
 function login(nickname, password) {
   console.log('로그인 시도:', nickname);
   
@@ -180,37 +98,253 @@ function login(nickname, password) {
   }
 }
 
-// ===== getMembers 함수도 수정 (직업 필드 인덱스 조정) =====
-function getMembers() {
-  console.log('회원 목록 조회 시작');
+// ===== 세션 유효성 검증 함수 =====
+function validateSession(userId, nickname) {
+  console.log('세션 유효성 검증:', userId, nickname);
   
   try {
     const sheet = getSheet(SHEET_NAMES.MEMBERS);
     if (!sheet) {
+      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      // ID와 닉네임이 일치하고 활성 상태인지 확인
+      if (data[i][0] === userId && data[i][1] === nickname && data[i][7] === '활성') {
+        console.log('세션 유효성 확인됨:', nickname);
+        return {
+          success: true,
+          user: {
+            id: data[i][0],
+            nickname: data[i][1],
+            guild: data[i][2],
+            server: data[i][3],
+            job: data[i][4],
+            isAdmin: data[i][8] === 'Y'
+          }
+        };
+      }
+    }
+    
+    console.log('세션 유효성 검증 실패:', nickname);
+    return { success: false, message: '세션이 만료되었거나 유효하지 않습니다.' };
+    
+  } catch (error) {
+    console.error('세션 검증 오류:', error);
+    return { success: false, message: '세션 검증 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+function register(userData) {
+  console.log('회원가입 시작:', userData);
+  
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // 중복 닉네임 체크
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === userData.nickname) {
+        return { success: false, message: '이미 존재하는 닉네임입니다.' };
+      }
+    }
+    
+    // 필수 필드 검증
+    if (!userData.nickname || !userData.guild || !userData.server || !userData.job || !userData.password) {
+      return { success: false, message: '모든 필드를 입력해주세요.' };
+    }
+    
+    const lastRow = sheet.getLastRow();
+    const newId = 'M' + String(lastRow).padStart(4, '0');
+    const today = new Date();
+    const hashedPassword = hashPassword(userData.password);
+    
+    // 새로운 회원 정보 추가 (직업 필드 포함)
+    sheet.appendRow([
+      newId,                    // 회원ID
+      userData.nickname,        // 닉네임
+      userData.guild,          // 길드명
+      userData.server,         // 서버
+      userData.job,            // 직업 (추가됨)
+      hashedPassword,          // 비밀번호 (해시)
+      today,                   // 가입일
+      '활성',                  // 상태
+      'N'                      // 관리자 여부
+    ]);
+    
+    console.log('회원가입 성공:', newId, userData.nickname, userData.job);
+    return { 
+      success: true, 
+      message: '회원가입이 완료되었습니다!\n\n닉네임: ' + userData.nickname + 
+               '\n직업: ' + userData.job + 
+               '\n길드: ' + userData.guild + 
+               '\n서버: ' + userData.server +
+               '\n\n이제 로그인할 수 있습니다.'
+    };
+    
+  } catch (error) {
+    console.error('회원가입 오류:', error);
+    return { success: false, message: '회원가입 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+// ===== 관리자 HTML 페이지 생성 함수 =====
+function getAdminHTML() {
+  console.log('관리자 HTML 생성 시작');
+  
+  try {
+    // admin-pages.gs에서 관리자 HTML을 가져옴
+    return getAdminPageHTML();
+  } catch (error) {
+    console.error('관리자 HTML 생성 오류:', error);
+    return `
+      <div class="page-header">
+        <h1 class="page-title">관리자 설정</h1>
+        <p class="page-subtitle">시스템 관리 및 설정</p>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="material-icons">error</span>
+          <span>오류 발생</span>
+        </div>
+        <p>관리자 페이지를 로드하는 중 오류가 발생했습니다: ${error.message}</p>
+        <button class="btn btn-primary" onclick="location.reload()">
+          <span class="material-icons">refresh</span>
+          새로고침
+        </button>
+      </div>
+    `;
+  }
+}
+
+// ===== 회원 정보 시트 초기화 함수도 수정 =====
+function initializeMembersSheet() {
+  console.log('회원 정보 시트 초기화 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+    
+    if (!sheet) {
+      console.log('회원 정보 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.MEMBERS);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('회원 정보 시트 헤더 추가');
+      sheet.appendRow([
+        '회원ID', '닉네임', '길드', '서버', '직업', 
+        '비밀번호', '가입일', '상태', '관리자'
+      ]);
+    }
+    
+    return { success: true, message: '회원 정보 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('회원 정보 시트 초기화 오류:', error);
+    return { success: false, message: '회원 정보 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== 보스 기록 시트 초기화 =====
+function initializeBossRecordsSheet() {
+  console.log('보스 기록 시트 초기화 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.BOSS_RECORDS);
+    
+    if (!sheet) {
+      console.log('보스 기록 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.BOSS_RECORDS);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('보스 기록 시트 헤더 추가');
+      sheet.appendRow([
+        '기록ID', '날짜', '보스명', '참여자', '아이템', 
+        '아이템수량', '판매상태', '판매가격', '수수료', '실수령액', '주차'
+      ]);
+    }
+    
+    return { success: true, message: '보스 기록 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('보스 기록 시트 초기화 오류:', error);
+    return { success: false, message: '보스 기록 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== getMembers 함수 수정 (보스 참여횟수 포함) =====
+function getMembers() {
+  console.log('회원 목록 조회 시작');
+  
+  try {
+    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!memberSheet) {
       console.log('회원 정보 시트를 찾을 수 없습니다');
       return [];
     }
     
-    const data = sheet.getDataRange().getValues();
+    const memberData = memberSheet.getDataRange().getValues();
     const members = [];
     
-    for (let i = 1; i < data.length; i++) {
+    // 보스 참여 기록 가져오기
+    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
+    let bossData = [];
+    if (bossSheet && bossSheet.getLastRow() > 1) {
+      bossData = bossSheet.getDataRange().getValues();
+    }
+    
+    for (let i = 1; i < memberData.length; i++) {
       // 빈 행 건너뛰기
-      if (!data[i][0] || !data[i][1]) {
+      if (!memberData[i][0] || !memberData[i][1]) {
         continue;
       }
       
+      const nickname = memberData[i][1];
+      
+      // 해당 회원의 보스 참여횟수 계산
+      let participationCount = 0;
+      let lastParticipation = null;
+      
+      for (let j = 1; j < bossData.length; j++) {
+        if (bossData[j][3] === nickname) { // 참여자 컬럼 확인
+          participationCount++;
+          const participationDate = new Date(bossData[j][1]);
+          if (!lastParticipation || participationDate > lastParticipation) {
+            lastParticipation = participationDate;
+          }
+        }
+      }
+      
       members.push({
-        id: data[i][0],
-        nickname: data[i][1],
-        guild: data[i][2],
-        server: data[i][3],
-        job: data[i][4],              // 직업 필드 추가
-        joinDate: data[i][6],         // 인덱스 조정
-        status: data[i][7],           // 인덱스 조정
-        isAdmin: data[i][8] === 'Y'   // 인덱스 조정
+        id: memberData[i][0],
+        nickname: nickname,
+        guild: memberData[i][2],
+        server: memberData[i][3],
+        job: memberData[i][4],              // 직업 필드
+        joinDate: memberData[i][6],         // 가입일
+        status: memberData[i][7],           // 상태
+        isAdmin: memberData[i][8] === 'Y',  // 관리자 여부
+        participationCount: participationCount,  // 보스 참여횟수
+        lastParticipation: lastParticipation     // 마지막 참여일
       });
     }
+    
+    // 참여횟수 순으로 정렬
+    members.sort(function(a, b) {
+      return b.participationCount - a.participationCount;
+    });
     
     console.log('회원 목록 조회 완료, 총 인원:', members.length);
     return members;
@@ -435,28 +569,6 @@ function getWeeklyStats(weekNum) {
   return stats;
 }
 
-// ===== 관리자 함수 =====
-function getMembers() {
-  const sheet = getSheet(SHEET_NAMES.MEMBERS);
-  const data = sheet.getDataRange().getValues();
-  
-  const members = [];
-  for (let i = 1; i < data.length; i++) {
-    members.push({
-      id: data[i][0],
-      nickname: data[i][1],
-      guild: data[i][2],
-      server: data[i][3],
-      job: data[i][4],        // 직업 추가
-      joinDate: data[i][6],   // 인덱스 조정
-      status: data[i][7],     // 인덱스 조정
-      isAdmin: data[i][8] === 'Y'  // 인덱스 조정
-    });
-  }
-  
-  return members;
-}
-
 // ===== 초기 데이터 설정 함수 =====
 function initializeSystemData() {
   const permSheet = getSheet(SHEET_NAMES.PERMISSIONS);
@@ -650,33 +762,107 @@ function getRecentBossRecords(limit) {
 function formatNumber(num) {
   return new Intl.NumberFormat('ko-KR').format(num);
 }
-// ===== 전체 시스템 초기화 함수 =====
+
+// ===== 시스템 초기화 함수 개선 =====
 function initializeAllSheets() {
   console.log('전체 시스템 초기화 시작');
   
   try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const results = [];
     
     // 1. 회원 정보 시트 초기화
-    const membersResult = initializeMembersSheet();
-    results.push('회원정보: ' + membersResult.message);
+    let memberSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+    if (!memberSheet) {
+      memberSheet = ss.insertSheet(SHEET_NAMES.MEMBERS);
+      memberSheet.appendRow([
+        '회원ID', '닉네임', '길드', '서버', '직업', 
+        '비밀번호', '가입일', '상태', '관리자'
+      ]);
+      
+      // 테스트 관리자 계정 추가
+      const testAdminPassword = hashPassword('admin123');
+      memberSheet.appendRow([
+        'M0001', '관리자', '테스트길드', '테스트서버', '관리자',
+        testAdminPassword, new Date(), '활성', 'Y'
+      ]);
+      
+      results.push('회원정보: 시트 생성 및 테스트 관리자 계정 추가 완료');
+    } else {
+      results.push('회원정보: 기존 시트 확인됨');
+    }
     
     // 2. 보스 기록 시트 초기화
-    const bossRecordsResult = initializeBossRecordsSheet();
-    results.push('보스기록: ' + bossRecordsResult.message);
+    let bossSheet = ss.getSheetByName(SHEET_NAMES.BOSS_RECORDS);
+    if (!bossSheet) {
+      bossSheet = ss.insertSheet(SHEET_NAMES.BOSS_RECORDS);
+      bossSheet.appendRow([
+        '기록ID', '날짜', '보스명', '참여자', '아이템', 
+        '아이템수량', '판매상태', '판매가격', '수수료', '실수령액', '주차'
+      ]);
+      results.push('보스기록: 시트 생성 완료');
+    } else {
+      results.push('보스기록: 기존 시트 확인됨');
+    }
     
     // 3. 길드 자금 시트 초기화
-    const fundsResult = initializeGuildFundsSheet();
-    results.push('길드자금: ' + fundsResult.message);
+    let fundsSheet = ss.getSheetByName(SHEET_NAMES.GUILD_FUNDS);
+    if (!fundsSheet) {
+      fundsSheet = ss.insertSheet(SHEET_NAMES.GUILD_FUNDS);
+      fundsSheet.appendRow([
+        '거래ID', '날짜', '구분', '금액', '내역', '잔액', '비고'
+      ]);
+      fundsSheet.appendRow([
+        'GF0001', new Date(), '초기설정', 0, '시스템 초기화', 0, '자동생성'
+      ]);
+      results.push('길드자금: 시트 생성 완료');
+    } else {
+      results.push('길드자금: 기존 시트 확인됨');
+    }
     
-    // 4. 기타 시트들 초기화
-    const systemResult = initializeSystemData();
-    results.push('시스템설정: ' + systemResult.message);
+    // 4. 분배 내역 시트 초기화
+    let distributionSheet = ss.getSheetByName(SHEET_NAMES.DISTRIBUTION);
+    if (!distributionSheet) {
+      distributionSheet = ss.insertSheet(SHEET_NAMES.DISTRIBUTION);
+      distributionSheet.appendRow([
+        '분배ID', '날짜', '주차', '닉네임', '참여횟수', '참여율', '분배금액', '비고'
+      ]);
+      results.push('분배내역: 시트 생성 완료');
+    } else {
+      results.push('분배내역: 기존 시트 확인됨');
+    }
+    
+    // 5. 보스 목록 시트 초기화 (샘플 데이터 포함)
+    let bossListSheet = ss.getSheetByName(SHEET_NAMES.BOSS_LIST);
+    if (!bossListSheet) {
+      bossListSheet = ss.insertSheet(SHEET_NAMES.BOSS_LIST);
+      bossListSheet.appendRow(['보스ID', '보스명', '레벨', '출현시간', '상태', '등록일']);
+      
+      // 샘플 보스 데이터 추가
+      const bosses = [
+        ['B001', '발탄', 1415, '12:00, 19:00, 22:00', '활성', new Date()],
+        ['B002', '비아키스', 1430, '20:00, 23:00', '활성', new Date()],
+        ['B003', '쿠크세이튼', 1475, '21:00', '활성', new Date()],
+        ['B004', '아브렐슈드', 1490, '21:00, 23:30', '활성', new Date()],
+        ['B005', '일리아칸', 1580, '22:00', '활성', new Date()],
+        ['B006', '카양겔', 1540, '20:30', '활성', new Date()],
+        ['B007', '상아탑', 1600, '21:30', '활성', new Date()]
+      ];
+      
+      for (let i = 0; i < bosses.length; i++) {
+        bossListSheet.appendRow(bosses[i]);
+      }
+      
+      results.push('보스목록: 시트 생성 및 샘플 데이터 추가 완료');
+    } else {
+      results.push('보스목록: 기존 시트 확인됨');
+    }
     
     console.log('전체 시스템 초기화 완료');
     return { 
       success: true, 
-      message: '시스템 초기화 완료:\n' + results.join('\n') 
+      message: '시스템 초기화 완료!\n\n' + results.join('\n') + 
+               '\n\n🔑 테스트 관리자 계정:\n• 닉네임: 관리자\n• 비밀번호: admin123'
     };
     
   } catch (error) {
@@ -1109,22 +1295,175 @@ function cleanupOldData() {
   }
 }
 
-// ===== 캐시 초기화 함수 =====
-function clearCache() {
+// ===== 테스트 데이터 생성 함수 =====
+function createTestData() {
+  console.log('테스트 데이터 생성 시작');
+  
   try {
-    const cache = CacheService.getScriptCache();
-    cache.removeAll(['guild_members', 'boss_statistics', 'guild_balance']);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     
+    // 1. 테스트 회원 데이터 추가
+    const memberSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+    if (memberSheet) {
+      const testMembers = [
+        ['M0002', '길드페이드', '바람의언덕', '루페온', '바드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0003', '아워로드', '바람의언덕', '루페온', '워로드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0004', '박건슬링어', '바람의언덕', '루페온', '건슬링어', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0005', '김버서커', '바람의언덕', '루페온', '버서커', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0006', '이소서리스', '바람의언덕', '루페온', '소서리스', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0007', '최인파이터', '바람의언덕', '루페온', '인파이터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0008', '정데빌헌터', '바람의언덕', '루페온', '데빌헌터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0009', '강아르카나', '바람의언덕', '루페온', '아르카나', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0010', '홍블레이드', '바람의언덕', '루페온', '블레이드', hashPassword('test123'), new Date(), '비활성', 'N']
+      ];
+      
+      for (let i = 0; i < testMembers.length; i++) {
+        memberSheet.appendRow(testMembers[i]);
+      }
+    }
+    
+    // 2. 테스트 보스 참여 기록 추가
+    const bossSheet = ss.getSheetByName(SHEET_NAMES.BOSS_RECORDS);
+    if (bossSheet) {
+      const testRecords = [];
+      const members = ['길드페이드', '아워로드', '박건슬링어', '김버서커', '이소서리스', '최인파이터', '정데빌헌터', '강아르카나'];
+      const bosses = ['발탄', '비아키스', '쿠크세이튼', '아브렐슈드', '일리아칸', '카양겔', '상아탑'];
+      const items = ['마수의 뼈', '광기의 돌', '파멸의 돌', '질서의 돌', '카오스 돌', '신비한 보석', '영혼의 결정'];
+      
+      let recordId = 1;
+      
+      // 최근 2주간의 데이터 생성
+      for (let day = 14; day >= 0; day--) {
+        const date = new Date();
+        date.setDate(date.getDate() - day);
+        const weekNum = Math.ceil((date.getDate()) / 7);
+        
+        // 하루에 2-4개의 보스 레이드 (더 활발한 길드로 설정)
+        const dailyRaids = Math.floor(Math.random() * 3) + 2;
+        
+        for (let raid = 0; raid < dailyRaids; raid++) {
+          const boss = bosses[Math.floor(Math.random() * bosses.length)];
+          const item = items[Math.floor(Math.random() * items.length)];
+          const participantCount = Math.floor(Math.random() * 4) + 4; // 4-8명 참여
+          
+          // 길드페이드와 아워로드는 더 자주 참여하도록 가중치 적용
+          const shuffledMembers = [...members].sort(() => 0.5 - Math.random());
+          // 상위 참여자들에게 가중치 부여
+          if (Math.random() > 0.3) {
+            if (!shuffledMembers.includes('길드페이드')) shuffledMembers.unshift('길드페이드');
+          }
+          if (Math.random() > 0.4) {
+            if (!shuffledMembers.includes('아워로드')) shuffledMembers.unshift('아워로드');
+          }
+          
+          const participants = shuffledMembers.slice(0, participantCount);
+          
+          // 각 참여자별로 기록 추가
+          for (let p = 0; p < participants.length; p++) {
+            const id = 'BR' + String(recordId).padStart(5, '0');
+            // 판매 확률을 높이고 가격 범위 조정
+            const salePrice = Math.random() > 0.5 ? Math.floor(Math.random() * 8000000) + 500000 : 0;
+            const soldStatus = salePrice > 0 ? '판매완료' : '미판매';
+            const commission = salePrice * 0.08;
+            const netAmount = salePrice - commission;
+            
+            testRecords.push([
+              id, date, boss, participants[p], item, 1, 
+              soldStatus, salePrice, commission, netAmount, weekNum
+            ]);
+            recordId++;
+          }
+        }
+      }
+      
+      // 배치로 기록 추가
+      if (testRecords.length > 0) {
+        const range = bossSheet.getRange(bossSheet.getLastRow() + 1, 1, testRecords.length, testRecords[0].length);
+        range.setValues(testRecords);
+      }
+    }
+    
+    // 3. 테스트 길드 자금 거래 내역 추가
+    const fundsSheet = ss.getSheetByName(SHEET_NAMES.GUILD_FUNDS);
+    if (fundsSheet) {
+      let balance = 0;
+      let transactionId = 2;
+      
+      const fundTransactions = [
+        ['입금', 15000000, '아이템 판매 수익'],
+        ['출금', 8000000, '주급 분배'],
+        ['입금', 12000000, '아이템 판매 수익'],
+        ['입금', 7500000, '아이템 판매 수익'],
+        ['출금', 6500000, '주급 분배'],
+        ['입금', 20000000, '고가 아이템 판매']
+      ];
+      
+      for (let i = 0; i < fundTransactions.length; i++) {
+        const [type, amount, description] = fundTransactions[i];
+        const date = new Date();
+        date.setDate(date.getDate() - (fundTransactions.length - i) * 2);
+        
+        if (type === '입금') {
+          balance += amount;
+        } else {
+          balance -= amount;
+        }
+        
+        const id = 'GF' + String(transactionId).padStart(4, '0');
+        fundsSheet.appendRow([id, date, type, amount, description, balance, '']);
+        transactionId++;
+      }
+    }
+    
+    console.log('테스트 데이터 생성 완료');
     return { 
       success: true, 
-      message: '캐시가 초기화되었습니다.' 
+      message: '테스트 데이터 생성 완료!\n\n• 테스트 회원 8명 추가\n• 보스 참여 기록 ' + 
+               (recordId - 1) + '건 추가\n• 길드 자금 거래 내역 6건 추가\n\n이제 길드원 목록에서 실제 데이터를 확인할 수 있습니다.'
     };
     
   } catch (error) {
-    console.error('캐시 초기화 오류:', error);
+    console.error('테스트 데이터 생성 오류:', error);
     return { 
       success: false, 
-      message: '캐시 초기화 중 오류가 발생했습니다: ' + error.message 
+      message: '테스트 데이터 생성 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 관리자용 테스트 함수 - 초기화 + 테스트 데이터 =====
+function setupCompleteTestEnvironment() {
+  console.log('완전한 테스트 환경 설정 시작');
+  
+  try {
+    // 1. 시트 초기화
+    const initResult = initializeAllSheets();
+    if (!initResult.success) {
+      return initResult;
+    }
+    
+    // 2. 테스트 데이터 생성
+    const testResult = createTestData();
+    if (!testResult.success) {
+      return testResult;
+    }
+    
+    return {
+      success: true,
+      message: '완전한 테스트 환경 설정 완료!\n\n' + 
+               '✅ 시스템 초기화 완료\n' +
+               '✅ 테스트 데이터 생성 완료\n\n' +
+               '🔑 관리자 계정:\n• 닉네임: 관리자\n• 비밀번호: admin123\n\n' +
+               '🔑 테스트 회원 계정들:\n• 닉네임: 길드페이드 (고참여자)\n• 닉네임: 아워로드 (고참여자)\n• 비밀번호: test123 (모든 테스트 계정 공통)\n\n' +
+               '📊 생성된 데이터:\n• 회원 9명 (관리자 포함)\n• 보스 참여 기록 다수\n• 길드 자금 거래 내역\n• 샘플 보스 목록\n\n' +
+               '🚀 이제 모든 기능을 테스트할 수 있습니다!\n길드원 목록에서 실제 데이터를 확인해보세요.'
+    };
+    
+  } catch (error) {
+    console.error('테스트 환경 설정 오류:', error);
+    return {
+      success: false,
+      message: '테스트 환경 설정 중 오류가 발생했습니다: ' + error.message
     };
   }
 }
