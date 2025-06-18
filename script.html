@@ -374,60 +374,256 @@ function handleBossRecord(e) {
         .saveBossRecord(recordData);
 }
 
+// ===== 길드원 목록 페이지 관련 함수들 =====
+
 // 길드원 목록 페이지 로드
 function loadMembers() {
+    console.log('길드원 목록 페이지 로드 시작');
     showLoader();
+    
     google.script.run
         .withSuccessHandler(function(html) {
+            console.log('길드원 목록 HTML 로드 성공');
             document.getElementById('contentWrapper').innerHTML = html;
+            // HTML 로드 후 데이터 로드
             loadMembersData();
             hideLoader();
         })
-        .withFailureHandler(onError)
+        .withFailureHandler(function(error) {
+            console.error('길드원 목록 HTML 로드 실패:', error);
+            onError(error);
+        })
         .getMembersHTML();
 }
 
-// 길드원 데이터 로드
+// 길드원 데이터 로드 및 표시 함수
 function loadMembersData() {
+    console.log('길드원 데이터 로드 시작');
+    showLoader();
+    
     google.script.run
-        .withSuccessHandler(displayMembersGrid)
-        .withFailureHandler(onError)
+        .withSuccessHandler(function(members) {
+            console.log('길드원 데이터 로드 성공:', members);
+            if (members && members.length > 0) {
+                displayMembersTable(members);
+                updateMembersStats(members);
+                drawParticipationChart(members);
+            } else {
+                displayEmptyMembersMessage();
+            }
+            hideLoader();
+        })
+        .withFailureHandler(function(error) {
+            console.error('길드원 데이터 로드 실패:', error);
+            displayErrorMessage('길드원 데이터를 불러오는데 실패했습니다: ' + error.message);
+            hideLoader();
+        })
         .getMembers();
 }
 
-// 멤버 그리드 표시
-function displayMembersGrid(members) {
-    var grid = document.getElementById('membersGrid');
-    if (!grid) return;
+// 길드원 테이블 표시 함수
+function displayMembersTable(members) {
+    console.log('길드원 테이블 표시:', members.length + '명');
     
-    var html = '';
-    for (var i = 0; i < members.length; i++) {
-        var member = members[i];
-        
-        // 직업별 아이콘 색상 설정
-        var jobColor = getJobColor(member.job);
-        
-        html += '<div class="member-card">' +
-            '<div class="member-avatar">' +
-                '<span class="avatar-text">' + member.nickname.substring(0, 2) + '</span>' +
-            '</div>' +
-            '<h4 class="member-name">' + member.nickname + '</h4>' +
-            '<div class="member-job" style="color: ' + jobColor + '; font-weight: 600; margin: 8px 0;">' +
-                '<span class="material-icons" style="font-size: 16px; vertical-align: middle;">work</span> ' +
-                member.job +
-            '</div>' +
-            '<p class="member-info">' + member.guild + ' - ' + member.server + '</p>' +
-            '<div class="member-status ' + (member.status === '활성' ? 'active' : 'inactive') + '">' +
-                member.status +
-            '</div>' +
-            '<div class="member-meta">' +
-                '<span>가입일: ' + new Date(member.joinDate).toLocaleDateString() + '</span>' +
-                (member.isAdmin ? '<span class="admin-badge">관리자</span>' : '') +
-            '</div>' +
-        '</div>';
+    var tbody = document.getElementById('membersTableBody');
+    if (!tbody) {
+        console.error('membersTableBody 요소를 찾을 수 없습니다');
+        return;
     }
     
-    grid.innerHTML = html;
+    var html = '';
+    var totalParticipation = members.reduce(function(sum, member) {
+        return sum + (member.participationCount || 0);
+    }, 0);
+    
+    for (var i = 0; i < members.length; i++) {
+        var member = members[i];
+        var participationRate = totalParticipation > 0 ? 
+            Math.round((member.participationCount / totalParticipation) * 100) : 0;
+        
+        var statusClass = member.status === '활성' ? 'active' : 'inactive';
+        var jobColor = getJobColor(member.job);
+        var roleText = member.isAdmin ? '관리자' : '일반회원';
+        var roleClass = member.isAdmin ? 'admin' : 'member';
+        
+        var lastParticipationText = member.lastParticipation ? 
+            new Date(member.lastParticipation).toLocaleDateString() : '참여 없음';
+        
+        html += '<tr class="member-row" data-status="' + member.status + '" data-job="' + member.job + '">' +
+            '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
+            '<td>' +
+                '<div class="member-name-cell">' +
+                    '<div class="member-avatar-sm">' +
+                        '<span class="avatar-text">' + member.nickname.substring(0, 1) + '</span>' +
+                    '</div>' +
+                    '<strong class="member-nickname">' + member.nickname + '</strong>' +
+                '</div>' +
+            '</td>' +
+            '<td>' + member.guild + '</td>' +
+            '<td>' + member.server + '</td>' +
+            '<td>' +
+                '<span class="job-badge" style="background-color: ' + jobColor + '20; color: ' + jobColor + '; border: 1px solid ' + jobColor + '40;">' +
+                    member.job +
+                '</span>' +
+            '</td>' +
+            '<td>' + new Date(member.joinDate).toLocaleDateString() + '</td>' +
+            '<td><span class="status-badge ' + statusClass + '">' + member.status + '</span></td>' +
+            '<td>' +
+                '<div class="participation-cell">' +
+                    '<strong>' + (member.participationCount || 0) + '회</strong>' +
+                '</div>' +
+            '</td>' +
+            '<td>' +
+                '<div class="participation-rate">' +
+                    '<div class="rate-bar">' +
+                        '<div class="rate-fill" style="width: ' + Math.min(participationRate * 2, 100) + '%"></div>' +
+                    '</div>' +
+                    '<span class="rate-text">' + participationRate + '%</span>' +
+                '</div>' +
+            '</td>' +
+            '<td>' + lastParticipationText + '</td>' +
+            '<td><span class="role-badge ' + roleClass + '">' + roleText + '</span></td>' +
+        '</tr>';
+    }
+    
+    tbody.innerHTML = html;
+    
+    // 테이블 행에 클릭 이벤트 추가
+    var rows = document.querySelectorAll('.member-row');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].addEventListener('click', function() {
+            var nickname = this.querySelector('.member-nickname').textContent;
+            showMemberDetail(nickname);
+        });
+    }
+}
+
+// 통계 업데이트 함수
+function updateMembersStats(members) {
+    var total = members.length;
+    var active = members.filter(function(m) { return m.status === '활성'; }).length;
+    var inactive = total - active;
+    var totalParticipation = members.reduce(function(sum, member) {
+        return sum + (member.participationCount || 0);
+    }, 0);
+    
+    var totalMembersEl = document.getElementById('totalMembersCount');
+    var activeMembersEl = document.getElementById('activeMembersCount');
+    var inactiveMembersEl = document.getElementById('inactiveMembersCount');
+    var totalParticipationEl = document.getElementById('totalParticipationCount');
+    
+    if (totalMembersEl) totalMembersEl.textContent = total + '명';
+    if (activeMembersEl) activeMembersEl.textContent = active + '명';
+    if (inactiveMembersEl) inactiveMembersEl.textContent = inactive + '명';
+    if (totalParticipationEl) totalParticipationEl.textContent = totalParticipation + '회';
+}
+
+// 빈 메시지 표시
+function displayEmptyMembersMessage() {
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
+            '<div class="empty-members">' +
+                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people_outline</span>' +
+                '<p>등록된 길드원이 없습니다.</p>' +
+                '<button class="btn btn-primary" onclick="showPage(\'admin\')">길드원 관리하기</button>' +
+            '</div>' +
+        '</td></tr>';
+    }
+}
+
+// 에러 메시지 표시
+function displayErrorMessage(message) {
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
+            '<div class="error-members">' +
+                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px; color: #f44336;">error</span>' +
+                '<p>' + message + '</p>' +
+                '<button class="btn btn-secondary" onclick="loadMembersData()">다시 시도</button>' +
+            '</div>' +
+        '</td></tr>';
+    }
+}
+
+// 검색 및 필터링 함수들
+function searchMembers(keyword) {
+    var rows = document.querySelectorAll('.member-row');
+    var lowerKeyword = keyword.toLowerCase();
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var nickname = row.querySelector('.member-nickname').textContent.toLowerCase();
+        
+        if (nickname.includes(lowerKeyword)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function filterMembers(status) {
+    var rows = document.querySelectorAll('.member-row');
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var memberStatus = row.getAttribute('data-status');
+        
+        if (status === 'all' || memberStatus === status) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function filterMembersByJob(job) {
+    var rows = document.querySelectorAll('.member-row');
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var memberJob = row.getAttribute('data-job');
+        
+        if (job === 'all' || memberJob === job) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+// 정렬 함수
+function sortMembers(sortBy) {
+    // 현재 표시된 데이터를 다시 정렬해서 표시
+    loadMembersData(); // 간단하게 데이터를 다시 로드
+}
+
+// 기타 함수들
+function exportMembersList() {
+    alert('길드원 목록 내보내기 기능은 준비 중입니다.');
+}
+
+function refreshMembersList() {
+    loadMembersData();
+}
+
+function showMemberDetail(nickname) {
+    alert('회원 상세 정보: ' + nickname + '\n(상세 기능은 준비 중입니다)');
+}
+
+function drawParticipationChart(members) {
+    // 간단한 참여율 차트 그리기
+    var canvas = document.getElementById('participationChart');
+    if (canvas) {
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#E0E0E0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#00BCD4';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('참여율 차트 (준비 중)', canvas.width/2, canvas.height/2);
+    }
 }
 
 // 직업별 색상 반환 함수
@@ -475,6 +671,8 @@ function getJobColor(job) {
     
     return jobColors[job] || '#718096'; // 기본 회색
 }
+
+// ===== 기존 함수들 계속 =====
 
 // 아이템 판매 페이지 로드
 function loadItemSales() {
@@ -530,7 +728,7 @@ function loadDistribution() {
         .getDistributionHTML();
 }
 
-// ===== 통계 페이지 로드 - 수정된 부분 =====
+// 통계 페이지 로드
 function loadStatistics() {
     console.log('통계 페이지 로드 시작');
     showLoader();
@@ -665,7 +863,7 @@ function displayBossStatisticsChart(bossStats) {
     console.log('보스 통계 차트 표시 완료');
 }
 
-// ===== 관리자 페이지 로드 - 수정된 부분 =====
+// 관리자 페이지 로드
 function loadAdmin() {
     if (!currentUser || !currentUser.isAdmin) {
         alert('관리자 권한이 필요합니다.');
@@ -1111,29 +1309,6 @@ function closeEditModal() {
     }
 }
 
-function searchMembers(keyword) {
-    // 멤버 검색 로직
-}
-
-function filterMembers(status) {
-    // 멤버 필터링 로직
-}
-
-// 직업별 필터링 함수 추가
-function filterMembersByJob(job) {
-    var cards = document.querySelectorAll('.member-card');
-    for (var i = 0; i < cards.length; i++) {
-        var card = cards[i];
-        var memberJob = card.querySelector('.member-job').textContent.replace('work ', '').trim();
-        
-        if (job === 'all' || memberJob === job) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
-    }
-}
-
 function filterBossHistory() {
     var periodFilter = document.getElementById('periodFilter').value;
     var bossFilter = document.getElementById('bossFilter').value;
@@ -1207,7 +1382,7 @@ function updateInactiveMembers() {
     }
 }
 
-// ===== 관리자 기능 함수들 =====
+// 관리자 기능 함수들
 function initializeAllSheets() {
     if (confirm('모든 시트를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
         showLoader();
