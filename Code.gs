@@ -524,3 +524,481 @@ function getRecentBossRecords(limit) {
 function formatNumber(num) {
   return new Intl.NumberFormat('ko-KR').format(num);
 }
+// ===== 전체 시스템 초기화 함수 =====
+function initializeAllSheets() {
+  console.log('전체 시스템 초기화 시작');
+  
+  try {
+    const results = [];
+    
+    // 1. 회원 정보 시트 초기화
+    const membersResult = initializeMembersSheet();
+    results.push('회원정보: ' + membersResult.message);
+    
+    // 2. 보스 기록 시트 초기화
+    const bossRecordsResult = initializeBossRecordsSheet();
+    results.push('보스기록: ' + bossRecordsResult.message);
+    
+    // 3. 길드 자금 시트 초기화
+    const fundsResult = initializeGuildFundsSheet();
+    results.push('길드자금: ' + fundsResult.message);
+    
+    // 4. 기타 시트들 초기화
+    const systemResult = initializeSystemData();
+    results.push('시스템설정: ' + systemResult.message);
+    
+    console.log('전체 시스템 초기화 완료');
+    return { 
+      success: true, 
+      message: '시스템 초기화 완료:\n' + results.join('\n') 
+    };
+    
+  } catch (error) {
+    console.error('전체 시스템 초기화 오류:', error);
+    return { 
+      success: false, 
+      message: '시스템 초기화 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 길드 자금 시트 초기화 =====
+function initializeGuildFundsSheet() {
+  console.log('길드 자금 시트 초기화 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.GUILD_FUNDS);
+    
+    if (!sheet) {
+      console.log('길드 자금 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.GUILD_FUNDS);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('길드 자금 시트 헤더 추가');
+      sheet.appendRow([
+        '거래ID', '날짜', '구분', '금액', '내역', '잔액', '비고'
+      ]);
+      
+      // 초기 자금 0원으로 설정
+      sheet.appendRow([
+        'GF0001', new Date(), '초기설정', 0, '시스템 초기화', 0, '자동생성'
+      ]);
+    }
+    
+    return { success: true, message: '길드 자금 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('길드 자금 시트 초기화 오류:', error);
+    return { success: false, message: '길드 자금 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== 분배 내역 시트 초기화 =====
+function initializeDistributionSheet() {
+  console.log('분배 내역 시트 초기화 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.DISTRIBUTION);
+    
+    if (!sheet) {
+      console.log('분배 내역 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.DISTRIBUTION);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('분배 내역 시트 헤더 추가');
+      sheet.appendRow([
+        '분배ID', '날짜', '주차', '닉네임', '참여횟수', '참여율', '분배금액', '비고'
+      ]);
+    }
+    
+    return { success: true, message: '분배 내역 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('분배 내역 시트 초기화 오류:', error);
+    return { success: false, message: '분배 내역 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== 주간 통계 시트 초기화 =====
+function initializeWeeklyStatsSheet() {
+  console.log('주간 통계 시트 초기화 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.WEEKLY_STATS);
+    
+    if (!sheet) {
+      console.log('주간 통계 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.WEEKLY_STATS);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('주간 통계 시트 헤더 추가');
+      sheet.appendRow([
+        '주차', '년도', '닉네임', '참여횟수', '아이템수', '판매금액', '생성일'
+      ]);
+    }
+    
+    return { success: true, message: '주간 통계 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('주간 통계 시트 초기화 오류:', error);
+    return { success: false, message: '주간 통계 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== 시스템 상태 체크 함수 =====
+function checkSystemStatus() {
+  console.log('시스템 상태 체크 시작');
+  
+  try {
+    const status = {
+      sheets: {},
+      data: {},
+      errors: []
+    };
+    
+    // 1. 시트 존재 여부 확인
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheetNames = Object.values(SHEET_NAMES);
+    
+    for (let i = 0; i < sheetNames.length; i++) {
+      const sheetName = sheetNames[i];
+      const sheet = ss.getSheetByName(sheetName);
+      
+      if (sheet) {
+        status.sheets[sheetName] = {
+          exists: true,
+          rows: sheet.getLastRow(),
+          cols: sheet.getLastColumn()
+        };
+      } else {
+        status.sheets[sheetName] = {
+          exists: false,
+          rows: 0,
+          cols: 0
+        };
+        status.errors.push(sheetName + ' 시트가 없습니다');
+      }
+    }
+    
+    // 2. 데이터 유효성 검사
+    status.data.members = getMembers().length;
+    status.data.bossRecords = getBossRecords().length;
+    status.data.guildBalance = getGuildBalance();
+    
+    // 3. API 키 확인
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === '') {
+      status.errors.push('Gemini API 키가 설정되지 않았습니다');
+    }
+    
+    console.log('시스템 상태 체크 완료:', status);
+    return status;
+    
+  } catch (error) {
+    console.error('시스템 상태 체크 오류:', error);
+    return {
+      sheets: {},
+      data: {},
+      errors: ['시스템 상태 체크 실패: ' + error.message]
+    };
+  }
+}
+
+// ===== 데이터 검증 개선 함수 =====
+function validateData() {
+  console.log('데이터 검증 시작');
+  
+  try {
+    const errors = [];
+    
+    // 1. 중복 회원 체크
+    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (memberSheet) {
+      const members = memberSheet.getDataRange().getValues();
+      const nicknames = new Set();
+      
+      for (let i = 1; i < members.length; i++) {
+        if (!members[i][1]) continue;
+        
+        if (nicknames.has(members[i][1])) {
+          errors.push('중복 닉네임: ' + members[i][1]);
+        }
+        nicknames.add(members[i][1]);
+      }
+    }
+    
+    // 2. 자금 잔액 검증
+    const fundsSheet = getSheet(SHEET_NAMES.GUILD_FUNDS);
+    if (fundsSheet) {
+      const fundsData = fundsSheet.getDataRange().getValues();
+      let calculatedBalance = 0;
+      
+      for (let i = 1; i < fundsData.length; i++) {
+        if (!fundsData[i][0]) continue;
+        
+        if (fundsData[i][2] === '입금') {
+          calculatedBalance += fundsData[i][3] || 0;
+        } else {
+          calculatedBalance -= fundsData[i][3] || 0;
+        }
+        
+        const recordedBalance = fundsData[i][5] || 0;
+        if (Math.abs(calculatedBalance - recordedBalance) > 1) {
+          errors.push('자금 잔액 오류 (행 ' + (i + 1) + '): 계산=' + calculatedBalance + ', 기록=' + recordedBalance);
+        }
+      }
+    }
+    
+    // 3. 보스 기록 검증
+    const bossRecords = getBossRecords();
+    const invalidRecords = bossRecords.filter(record => 
+      !record.bossName || !record.participant || !record.date
+    );
+    
+    if (invalidRecords.length > 0) {
+      errors.push('불완전한 보스 기록 ' + invalidRecords.length + '건 발견');
+    }
+    
+    console.log('데이터 검증 완료, 오류 수:', errors.length);
+    return errors;
+    
+  } catch (error) {
+    console.error('데이터 검증 오류:', error);
+    return ['데이터 검증 중 오류 발생: ' + error.message];
+  }
+}
+
+// ===== 백업 개선 함수 =====
+function createBackup() {
+  console.log('백업 생성 시작');
+  
+  try {
+    const sourceSpreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const backupName = '길드관리_백업_' + Utilities.formatDate(new Date(), 'GMT+9', 'yyyy-MM-dd_HHmm');
+    
+    // 백업 생성
+    const backup = sourceSpreadsheet.copy(backupName);
+    
+    // 백업 폴더로 이동 (선택사항)
+    const backupFolder = DriveApp.getFoldersByName('길드관리_백업');
+    if (backupFolder.hasNext()) {
+      const folder = backupFolder.next();
+      const file = DriveApp.getFileById(backup.getId());
+      folder.addFile(file);
+      DriveApp.getRootFolder().removeFile(file);
+    }
+    
+    console.log('백업 생성 완료:', backupName);
+    return { 
+      success: true, 
+      message: '백업이 생성되었습니다: ' + backupName,
+      fileId: backup.getId()
+    };
+    
+  } catch (error) {
+    console.error('백업 생성 오류:', error);
+    return { 
+      success: false, 
+      message: '백업 생성 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 관리자 계정 생성 함수 =====
+function createAdminAccount() {
+  console.log('관리자 계정 생성 시작');
+  
+  try {
+    const adminData = {
+      nickname: '관리자',
+      guild: '길드명',
+      server: '서버명',
+      job: '관리자',
+      password: 'admin123!'
+    };
+    
+    // 기존 관리자 계정 확인
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      return { success: false, message: '회원 정보 시트가 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === adminData.nickname) {
+        return { success: false, message: '관리자 계정이 이미 존재합니다.' };
+      }
+    }
+    
+    // 관리자 계정 생성
+    const lastRow = sheet.getLastRow();
+    const newId = 'M' + String(lastRow).padStart(4, '0');
+    const today = new Date();
+    const hashedPassword = hashPassword(adminData.password);
+    
+    sheet.appendRow([
+      newId,
+      adminData.nickname,
+      adminData.guild,
+      adminData.server,
+      adminData.job,
+      hashedPassword,
+      today,
+      '활성',
+      'Y'  // 관리자 권한
+    ]);
+    
+    console.log('관리자 계정 생성 완료');
+    return { 
+      success: true, 
+      message: '관리자 계정이 생성되었습니다.\n아이디: ' + adminData.nickname + '\n비밀번호: ' + adminData.password 
+    };
+    
+  } catch (error) {
+    console.error('관리자 계정 생성 오류:', error);
+    return { 
+      success: false, 
+      message: '관리자 계정 생성 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 시스템 설정 함수들 =====
+function getSystemSettings() {
+  try {
+    const sheet = getSheet(SHEET_NAMES.SYSTEM_SETTINGS);
+    if (!sheet) {
+      return {
+        commissionRate: 8,
+        autoBackupEnabled: false,
+        notificationEnabled: true,
+        maxInactiveDays: 30
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const settings = {};
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0]) {
+        settings[data[i][0]] = {
+          value: data[i][1],
+          type: data[i][2],
+          description: data[i][3],
+          lastModified: data[i][4]
+        };
+      }
+    }
+    
+    return {
+      commissionRate: parseInt(settings.commissionRate?.value) || 8,
+      autoBackupEnabled: settings.autoBackupEnabled?.value === 'true',
+      notificationEnabled: settings.notificationEnabled?.value !== 'false',
+      maxInactiveDays: parseInt(settings.maxInactiveDays?.value) || 30
+    };
+    
+  } catch (error) {
+    console.error('시스템 설정 조회 오류:', error);
+    return {
+      commissionRate: 8,
+      autoBackupEnabled: false,
+      notificationEnabled: true,
+      maxInactiveDays: 30
+    };
+  }
+}
+
+function updateSystemSettings(key, value) {
+  try {
+    const sheet = getSheet(SHEET_NAMES.SYSTEM_SETTINGS);
+    if (!sheet) {
+      return { success: false, message: '시스템 설정 시트를 찾을 수 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const now = new Date();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        sheet.getRange(i + 1, 2).setValue(value);
+        sheet.getRange(i + 1, 5).setValue(now);
+        return { success: true, message: '설정이 업데이트되었습니다.' };
+      }
+    }
+    
+    // 새 설정 추가
+    sheet.appendRow([key, value, typeof value, '', now]);
+    return { success: true, message: '새 설정이 추가되었습니다.' };
+    
+  } catch (error) {
+    console.error('시스템 설정 업데이트 오류:', error);
+    return { success: false, message: '설정 업데이트 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+// ===== 데이터 정리 함수 =====
+function cleanupOldData() {
+  console.log('오래된 데이터 정리 시작');
+  
+  try {
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    
+    let cleanedCount = 0;
+    
+    // 보스 기록 정리
+    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
+    if (bossSheet) {
+      const data = bossSheet.getDataRange().getValues();
+      
+      for (let i = data.length - 1; i >= 1; i--) {
+        const recordDate = new Date(data[i][1]);
+        if (recordDate < ninetyDaysAgo) {
+          bossSheet.deleteRow(i + 1);
+          cleanedCount++;
+        }
+      }
+    }
+    
+    console.log('데이터 정리 완료, 정리된 기록 수:', cleanedCount);
+    return { 
+      success: true, 
+      message: cleanedCount + '건의 오래된 기록이 정리되었습니다.' 
+    };
+    
+  } catch (error) {
+    console.error('데이터 정리 오류:', error);
+    return { 
+      success: false, 
+      message: '데이터 정리 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 캐시 초기화 함수 =====
+function clearCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.removeAll(['guild_members', 'boss_statistics', 'guild_balance']);
+    
+    return { 
+      success: true, 
+      message: '캐시가 초기화되었습니다.' 
+    };
+    
+  } catch (error) {
+    console.error('캐시 초기화 오류:', error);
+    return { 
+      success: false, 
+      message: '캐시 초기화 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
