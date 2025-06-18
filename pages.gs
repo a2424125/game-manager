@@ -686,7 +686,7 @@ function getDistributionHTML() {
   `;
 }
 
-// 통계/보고서 페이지
+// ===== 통계/보고서 페이지 - 수정된 부분 =====
 function getStatisticsHTML() {
   return `
     <div class="page-header">
@@ -723,8 +723,8 @@ function getStatisticsHTML() {
               <th>획득아이템</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- 참여율 순위가 여기에 표시됩니다 -->
+          <tbody id="participationRankingBody">
+            <tr><td colspan="6" style="text-align: center; color: #999;">데이터를 불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -737,7 +737,7 @@ function getStatisticsHTML() {
       </div>
       
       <div id="bossStatistics">
-        <!-- 보스별 통계가 여기에 표시됩니다 -->
+        <p style="text-align: center; color: #999; padding: 40px;">통계 데이터를 불러오는 중...</p>
       </div>
     </div>
   `;
