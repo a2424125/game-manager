@@ -12,6 +12,7 @@ const SHEET_NAMES = {
   BOSS_LIST: '보스목록',
   PERMISSIONS: '권한설정',
   SYSTEM_SETTINGS: '시스템설정'
+}
 // ===== 캐시 초기화 함수 =====
 function clearCache() {
   try {
