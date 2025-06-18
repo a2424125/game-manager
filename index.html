@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌴 길드 관리 시스템</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <?!= include('styles'); ?>
+</head>
+<body class="not-logged-in">
+    <!-- 로딩 스피너 -->
+    <div id="loader" class="loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p style="margin-top: 20px; color: #00BCD4;">로딩 중...</p>
+        </div>
+    </div>
+
+    <!-- 로그인 화면 -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🌊 길드 관리 시스템</h1>
+                <p>여름의 상쾌함과 함께하는 길드 운영</p>
+            </div>
+            
+            <!-- 로그인 폼 -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">게임 닉네임</label>
+                    <input type="text" class="form-input" id="loginNickname" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호</label>
+                    <input type="password" class="form-input" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">로그인</button>
+                <button type="button" class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+            </form>
+            
+            <!-- 회원가입 폼 (숨김) -->
+            <form id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">게임 닉네임</label>
+                    <input type="text" class="form-input" id="regNickname" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">길드명</label>
+                    <input type="text" class="form-input" id="regGuild" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">서버</label>
+                    <input type="text" class="form-input" id="regServer" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">직업 (클래스)</label>
+                    <select class="form-input" id="regJob" required>
+                        <option value="">직업을 선택하세요</option>
+                        <optgroup label="전사">
+                            <option value="버서커">버서커</option>
+                            <option value="디스트로이어">디스트로이어</option>
+                            <option value="워로드">워로드</option>
+                            <option value="홀리나이트">홀리나이트</option>
+                            <option value="슬레이어">슬레이어</option>
+                        </optgroup>
+                        <optgroup label="무도가">
+                            <option value="배틀마스터">배틀마스터</option>
+                            <option value="인파이터">인파이터</option>
+                            <option value="기공사">기공사</option>
+                            <option value="창술사">창술사</option>
+                            <option value="스트라이커">스트라이커</option>
+                            <option value="브레이커">브레이커</option>
+                        </optgroup>
+                        <optgroup label="건너">
+                            <option value="건슬링어">건슬링어</option>
+                            <option value="아르티스트">아르티스트</option>
+                            <option value="데빌헌터">데빌헌터</option>
+                            <option value="블래스터">블래스터</option>
+                            <option value="호크아이">호크아이</option>
+                            <option value="스카우터">스카우터</option>
+                        </optgroup>
+                        <optgroup label="마법사">
+                            <option value="바드">바드</option>
+                            <option value="서머너">서머너</option>
+                            <option value="아르카나">아르카나</option>
+                            <option value="소서리스">소서리스</option>
+                        </optgroup>
+                        <optgroup label="암살자">
+                            <option value="블레이드">블레이드</option>
+                            <option value="데모닉">데모닉</option>
+                            <option value="리퍼">리퍼</option>
+                            <option value="소울이터">소울이터</option>
+                        </optgroup>
+                        <optgroup label="스페셜리스트">
+                            <option value="도화가">도화가</option>
+                            <option value="기상술사">기상술사</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호</label>
+                    <input type="password" class="form-input" id="regPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">비밀번호 확인</label>
+                    <input type="password" class="form-input" id="regPasswordConfirm" required>
+                </div>
+                <button type="submit" class="btn btn-primary">가입하기</button>
+                <button type="button" class="btn btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 메인 앱 컨테이너 -->
+    <div id="appContainer" class="app-container" style="display: none;">
+        <!-- 네비게이션 바 -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <div class="navbar-brand">
+                    <span class="material-icons">beach_access</span>
+                    <span>길드 관리 시스템</span>
+                </div>
+                <div class="navbar-user">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">-</div>
+                        <div class="user-role" id="userRole">일반 회원</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">
+                        <span class="material-icons">logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 사이드바 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-menu">
+                <a class="menu-item active" onclick="showPage('dashboard')">
+                    <span class="material-icons menu-icon">dashboard</span>
+                    <span>대시보드</span>
+                </a>
+                <a class="menu-item" onclick="showPage('members')">
+                    <span class="material-icons menu-icon">people</span>
+                    <span>길드원 목록</span>
+                </a>
+                <a class="menu-item" onclick="showPage('boss-history')">
+                    <span class="material-icons menu-icon">history</span>
+                    <span>보스참여 히스토리</span>
+                </a>
+                <a class="menu-item" onclick="showPage('boss-record')">
+                    <span class="material-icons menu-icon">sports_esports</span>
+                    <span>보스 참여 등록</span>
+                </a>
+                <a class="menu-item" onclick="showPage('item-sales')">
+                    <span class="material-icons menu-icon">sell</span>
+                    <span>아이템 판매/분배</span>
+                </a>
+                <a class="menu-item" onclick="showPage('guild-funds')">
+                    <span class="material-icons menu-icon">account_balance</span>
+                    <span>길드 자금 관리</span>
+                </a>
+                <a class="menu-item" onclick="showPage('distribution')">
+                    <span class="material-icons menu-icon">paid</span>
+                    <span>주급 분배</span>
+                </a>
+                <a class="menu-item" onclick="showPage('statistics')">
+                    <span class="material-icons menu-icon">analytics</span>
+                    <span>통계/보고서</span>
+                </a>
+                <a class="menu-item admin-only" onclick="showPage('admin')" style="display: none;">
+                    <span class="material-icons menu-icon">admin_panel_settings</span>
+                    <span>관리자 설정</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="content-wrapper" id="contentWrapper">
+                <!-- 동적 콘텐츠가 여기에 로드됩니다 -->
+            </div>
+        </main>
+        
+        <!-- 모바일 메뉴 토글 -->
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span class="material-icons">menu</span>
+        </button>
+    </div>
+
+    <?!= include('script'); ?>
+</body>
+</html>
