@@ -294,60 +294,146 @@ function getBossRecordHTML() {
   `;
 }
 
-// 길드원 목록 페이지
+// ===== 길드원 목록 페이지 - 개선된 버전 =====
 function getMembersHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">길드원 목록</h1>
-      <p class="page-subtitle">전체 길드원 현황</p>
+      <p class="page-subtitle">전체 길드원 현황 및 참여 통계</p>
     </div>
     
+    <!-- 상단 통계 요약 -->
     <div class="members-stats">
       <div class="member-stat-card">
         <span class="stat-icon"><span class="material-icons">people</span></span>
         <div>
-          <div class="stat-number">35명</div>
+          <div class="stat-number" id="totalMembersCount">0명</div>
           <div class="stat-label">전체 길드원</div>
         </div>
       </div>
       <div class="member-stat-card active">
         <span class="stat-icon"><span class="material-icons">check_circle</span></span>
         <div>
-          <div class="stat-number">28명</div>
+          <div class="stat-number" id="activeMembersCount">0명</div>
           <div class="stat-label">활성 길드원</div>
         </div>
       </div>
       <div class="member-stat-card inactive">
         <span class="stat-icon"><span class="material-icons">cancel</span></span>
         <div>
-          <div class="stat-number">7명</div>
+          <div class="stat-number" id="inactiveMembersCount">0명</div>
           <div class="stat-label">비활성 길드원</div>
+        </div>
+      </div>
+      <div class="member-stat-card participation">
+        <span class="stat-icon"><span class="material-icons">sports_esports</span></span>
+        <div>
+          <div class="stat-number" id="totalParticipationCount">0회</div>
+          <div class="stat-label">총 보스 참여</div>
         </div>
       </div>
     </div>
     
+    <!-- 검색 및 필터 -->
     <div class="card">
       <div class="card-header">
-        <h3>길드원 목록</h3>
-        <div class="header-actions">
-          <input type="text" class="search-input" placeholder="닉네임 검색..." onkeyup="searchMembers(this.value)">
-          <select class="filter-select" onchange="filterMembers(this.value)">
+        <h3>길드원 검색 및 필터</h3>
+      </div>
+      <div class="members-filter-section">
+        <div class="filter-group">
+          <label>닉네임 검색</label>
+          <input type="text" class="search-input" id="memberSearch" placeholder="닉네임을 입력하세요..." onkeyup="searchMembers(this.value)">
+        </div>
+        <div class="filter-group">
+          <label>상태 필터</label>
+          <select class="filter-select" id="statusFilter" onchange="filterMembers(this.value)">
             <option value="all">전체</option>
-            <option value="active">활성</option>
-            <option value="inactive">비활성</option>
+            <option value="활성">활성</option>
+            <option value="비활성">비활성</option>
           </select>
-          <select class="filter-select" onchange="filterMembersByJob(this.value)">
+        </div>
+        <div class="filter-group">
+          <label>직업 필터</label>
+          <select class="filter-select" id="jobFilter" onchange="filterMembersByJob(this.value)">
             <option value="all">모든 직업</option>
             <option value="버서커">버서커</option>
             <option value="바드">바드</option>
             <option value="건슬링어">건슬링어</option>
             <option value="소서리스">소서리스</option>
             <option value="워로드">워로드</option>
+            <option value="인파이터">인파이터</option>
+            <option value="데빌헌터">데빌헌터</option>
+            <option value="아르카나">아르카나</option>
+            <option value="블레이드">블레이드</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>정렬 기준</label>
+          <select class="filter-select" id="sortFilter" onchange="sortMembers(this.value)">
+            <option value="participation">참여횟수 순</option>
+            <option value="name">닉네임 순</option>
+            <option value="joinDate">가입일 순</option>
+            <option value="lastActivity">최근 활동 순</option>
           </select>
         </div>
       </div>
+    </div>
+    
+    <!-- 길드원 목록 테이블 -->
+    <div class="card">
+      <div class="card-header">
+        <h3>길드원 목록</h3>
+        <div class="header-actions">
+          <button class="btn btn-sm btn-secondary" onclick="exportMembersList()">
+            <span class="material-icons">download</span>
+            목록 내보내기
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="refreshMembersList()">
+            <span class="material-icons">refresh</span>
+            새로고침
+          </button>
+        </div>
+      </div>
       
-      <div class="members-grid" id="membersGrid"></div>
+      <div class="table-container">
+        <table class="modern-table" id="membersTable">
+          <thead>
+            <tr>
+              <th>순위</th>
+              <th>닉네임</th>
+              <th>길드명</th>
+              <th>서버</th>
+              <th>직업</th>
+              <th>가입일</th>
+              <th>상태</th>
+              <th>총 참여횟수</th>
+              <th>참여율</th>
+              <th>최근 참여</th>
+              <th>권한</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody">
+            <tr>
+              <td colspan="11" style="text-align: center; padding: 40px; color: #999;">
+                <div class="loading-members">
+                  <span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people</span>
+                  <p>길드원 정보를 불러오는 중...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 참여율 통계 차트 -->
+    <div class="card">
+      <div class="card-header">
+        <h3>참여율 분포</h3>
+      </div>
+      <div class="participation-chart">
+        <canvas id="participationChart" width="400" height="200"></canvas>
+      </div>
     </div>
   `;
 }
