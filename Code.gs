@@ -66,33 +66,159 @@ function login(nickname, password) {
 }
 
 function register(userData) {
-  const sheet = getSheet(SHEET_NAMES.MEMBERS);
-  const data = sheet.getDataRange().getValues();
+  console.log('회원가입 시작:', userData);
   
-  // 중복 닉네임 체크
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === userData.nickname) {
-      return { success: false, message: '이미 존재하는 닉네임입니다.' };
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
     }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // 중복 닉네임 체크
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === userData.nickname) {
+        return { success: false, message: '이미 존재하는 닉네임입니다.' };
+      }
+    }
+    
+    const lastRow = sheet.getLastRow();
+    const newId = 'M' + String(lastRow).padStart(4, '0');
+    const today = new Date();
+    const hashedPassword = hashPassword(userData.password);
+    
+    // 새로운 회원 정보 추가 (직업 필드 포함)
+    sheet.appendRow([
+      newId,                    // 회원ID
+      userData.nickname,        // 닉네임
+      userData.guild,          // 길드명
+      userData.server,         // 서버
+      userData.job,            // 직업 (추가됨)
+      hashedPassword,          // 비밀번호 (해시)
+      today,                   // 가입일
+      '활성',                  // 상태
+      'N'                      // 관리자 여부
+    ]);
+    
+    console.log('회원가입 성공:', newId);
+    return { success: true, message: '회원가입이 완료되었습니다.' };
+    
+  } catch (error) {
+    console.error('회원가입 오류:', error);
+    return { success: false, message: '회원가입 중 오류가 발생했습니다: ' + error.message };
   }
+}
+
+// ===== 회원 정보 시트 초기화 함수도 수정 =====
+function initializeMembersSheet() {
+  console.log('회원 정보 시트 초기화 시작');
   
-  const lastRow = sheet.getLastRow();
-  const newId = 'M' + String(lastRow).padStart(4, '0');
-  const today = new Date();
-  const hashedPassword = hashPassword(userData.password);
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+    
+    if (!sheet) {
+      console.log('회원 정보 시트 생성');
+      sheet = ss.insertSheet(SHEET_NAMES.MEMBERS);
+    }
+    
+    // 헤더가 없으면 추가
+    if (sheet.getLastRow() < 1) {
+      console.log('회원 정보 시트 헤더 추가');
+      sheet.appendRow([
+        '회원ID', '닉네임', '길드', '서버', '직업', 
+        '비밀번호', '가입일', '상태', '관리자'
+      ]);
+    }
+    
+    return { success: true, message: '회원 정보 시트 초기화 완료' };
+    
+  } catch (error) {
+    console.error('회원 정보 시트 초기화 오류:', error);
+    return { success: false, message: '회원 정보 시트 초기화 실패: ' + error.message };
+  }
+}
+
+// ===== login 함수도 수정 (직업 필드 인덱스 조정) =====
+function login(nickname, password) {
+  console.log('로그인 시도:', nickname);
   
-  sheet.appendRow([
-    newId,
-    userData.nickname,
-    userData.guild,
-    userData.server,
-    hashedPassword,
-    today,
-    '활성',
-    'N'
-  ]);
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const hashedPassword = hashPassword(password);
+    
+    for (let i = 1; i < data.length; i++) {
+      // 인덱스 조정: 직업 필드가 추가되어 비밀번호는 5번째(인덱스 5), 상태는 7번째(인덱스 7), 관리자는 8번째(인덱스 8)
+      if (data[i][1] === nickname && data[i][5] === hashedPassword && data[i][7] === '활성') {
+        console.log('로그인 성공:', nickname);
+        return {
+          success: true,
+          user: {
+            id: data[i][0],
+            nickname: data[i][1],
+            guild: data[i][2],
+            server: data[i][3],
+            job: data[i][4],           // 직업 필드 추가
+            isAdmin: data[i][8] === 'Y'
+          }
+        };
+      }
+    }
+    
+    console.log('로그인 실패:', nickname);
+    return { success: false, message: '닉네임 또는 비밀번호가 일치하지 않습니다.' };
+    
+  } catch (error) {
+    console.error('로그인 오류:', error);
+    return { success: false, message: '로그인 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+// ===== getMembers 함수도 수정 (직업 필드 인덱스 조정) =====
+function getMembers() {
+  console.log('회원 목록 조회 시작');
   
-  return { success: true, message: '회원가입이 완료되었습니다.' };
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      console.log('회원 정보 시트를 찾을 수 없습니다');
+      return [];
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const members = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 빈 행 건너뛰기
+      if (!data[i][0] || !data[i][1]) {
+        continue;
+      }
+      
+      members.push({
+        id: data[i][0],
+        nickname: data[i][1],
+        guild: data[i][2],
+        server: data[i][3],
+        job: data[i][4],              // 직업 필드 추가
+        joinDate: data[i][6],         // 인덱스 조정
+        status: data[i][7],           // 인덱스 조정
+        isAdmin: data[i][8] === 'Y'   // 인덱스 조정
+      });
+    }
+    
+    console.log('회원 목록 조회 완료, 총 인원:', members.length);
+    return members;
+    
+  } catch (error) {
+    console.error('회원 목록 조회 오류:', error);
+    return [];
+  }
 }
 
 // ===== 보스 참여 기록 함수 =====
