@@ -530,23 +530,70 @@ function loadDistribution() {
         .getDistributionHTML();
 }
 
+// ===== 통계 페이지 로드 - 수정된 부분 =====
 function loadStatistics() {
+    console.log('통계 페이지 로드 시작');
     showLoader();
     
-    // 참여율 순위와 보스별 통계를 동시에 로드
+    // 먼저 HTML을 로드한 후 데이터를 불러옴
     google.script.run
-        .withSuccessHandler(function(statistics) {
-            displayParticipationRanking(statistics.memberStats);
-            displayBossStatisticsChart(statistics.bossStats);
+        .withSuccessHandler(function(html) {
+            console.log('통계 HTML 로드 성공');
+            document.getElementById('contentWrapper').innerHTML = html;
+            // HTML이 로드된 후 데이터 로드
+            loadStatisticsData();
             hideLoader();
         })
-        .withFailureHandler(onError)
+        .withFailureHandler(function(error) {
+            console.error('통계 HTML 로드 실패:', error);
+            onError(error);
+        })
+        .getStatisticsHTML();
+}
+
+function loadStatisticsData() {
+    console.log('통계 데이터 로드 시작');
+    
+    // 보스 통계 로드
+    google.script.run
+        .withSuccessHandler(function(statistics) {
+            console.log('보스 통계 로드 성공:', statistics);
+            if (statistics && statistics.bossStats && statistics.memberStats) {
+                displayParticipationRanking(statistics.memberStats);
+                displayBossStatisticsChart(statistics.bossStats);
+            } else {
+                console.warn('통계 데이터가 비어있습니다');
+                displayEmptyStatistics();
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('보스 통계 로드 실패:', error);
+            displayEmptyStatistics();
+        })
         .getBossStatistics();
 }
 
+function displayEmptyStatistics() {
+    // 참여율 순위 테이블에 빈 메시지 표시
+    var participationTbody = document.getElementById('participationRankingBody');
+    if (participationTbody) {
+        participationTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">참여 기록이 없습니다.</td></tr>';
+    }
+    
+    // 보스 통계에 빈 메시지 표시
+    var bossStatsDiv = document.getElementById('bossStatistics');
+    if (bossStatsDiv) {
+        bossStatsDiv.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">보스 통계 데이터가 없습니다.</p>';
+    }
+}
+
 function displayParticipationRanking(memberStats) {
-    var tbody = document.querySelector('#participationRanking tbody');
-    if (!tbody) return;
+    console.log('참여율 순위 표시 시작:', memberStats);
+    var tbody = document.getElementById('participationRankingBody');
+    if (!tbody) {
+        console.error('participationRankingBody 요소를 찾을 수 없습니다');
+        return;
+    }
     
     var html = '';
     var totalParticipation = 0;
@@ -576,11 +623,16 @@ function displayParticipationRanking(memberStats) {
     }
     
     tbody.innerHTML = html;
+    console.log('참여율 순위 표시 완료');
 }
 
 function displayBossStatisticsChart(bossStats) {
+    console.log('보스 통계 차트 표시 시작:', bossStats);
     var container = document.getElementById('bossStatistics');
-    if (!container) return;
+    if (!container) {
+        console.error('bossStatistics 요소를 찾을 수 없습니다');
+        return;
+    }
     
     var html = '<div class="boss-stats-cards">';
     
@@ -610,6 +662,7 @@ function displayBossStatisticsChart(bossStats) {
     }
     
     container.innerHTML = html;
+    console.log('보스 통계 차트 표시 완료');
 }
 
 function loadAdmin() {
