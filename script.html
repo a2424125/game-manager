@@ -9,10 +9,8 @@ function saveSession(user) {
     try {
         sessionStorage.setItem('guildUser', JSON.stringify(user));
         sessionStorage.setItem('guildSessionTime', Date.now().toString());
-        console.log('✅ 세션 저장 완료:', user.nickname);
         return true;
     } catch(e) {
-        console.error('❌ 세션 저장 실패:', e);
         return false;
     }
 }
@@ -29,15 +27,12 @@ function loadSession() {
             
             // 24시간 이내 세션만 유효
             if (now - timeStamp < 24 * 60 * 60 * 1000) {
-                console.log('✅ 유효한 세션 발견:', user.nickname);
                 return user;
             } else {
-                console.log('⏰ 세션 만료, 삭제합니다');
                 clearSession();
             }
         }
     } catch(e) {
-        console.error('❌ 세션 로드 실패:', e);
         clearSession();
     }
     return null;
@@ -47,9 +42,8 @@ function clearSession() {
     try {
         sessionStorage.removeItem('guildUser');
         sessionStorage.removeItem('guildSessionTime');
-        console.log('🗑️ 세션 삭제 완료');
     } catch(e) {
-        console.warn('⚠️ 세션 삭제 실패:', e);
+        // 무시
     }
 }
 
@@ -67,24 +61,16 @@ function validateCurrentSession() {
 
 // ===== 페이지 로드 시 초기화 =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 길드 관리 시스템 초기화 시작');
-    
     // 저장된 세션 확인 및 자동 로그인
     var savedUser = loadSession();
     if (savedUser) {
-        console.log('📋 저장된 세션으로 자동 로그인:', savedUser.nickname);
         currentUser = savedUser;
-        
-        // 앱 화면으로 즉시 전환
         showApp();
         return;
     }
     
-    console.log('🔐 세션 없음 - 로그인 화면 표시');
-    
     // 로그인 화면 초기화
     initializeLoginScreen();
-    
     hideLoader();
 });
 
@@ -109,15 +95,57 @@ function initializeLoginScreen() {
     }
     
     // 이벤트 리스너 등록
+    setupFormEventListeners();
+}
+
+// ===== 폼 이벤트 리스너 설정 =====
+function setupFormEventListeners() {
     var loginForm = document.getElementById('loginForm');
     var registerForm = document.getElementById('registerForm');
+    var changePasswordForm = document.getElementById('changePasswordForm');
     
     if (loginForm) {
+        loginForm.removeEventListener('submit', handleLogin);
         loginForm.addEventListener('submit', handleLogin);
     }
     
     if (registerForm) {
+        registerForm.removeEventListener('submit', handleRegister);
         registerForm.addEventListener('submit', handleRegister);
+        
+        // 비밀번호 확인 실시간 검증
+        var regPassword = document.getElementById('regPassword');
+        var regPasswordConfirm = document.getElementById('regPasswordConfirm');
+        
+        if (regPassword && regPasswordConfirm) {
+            regPasswordConfirm.addEventListener('input', checkPasswordMatch);
+            regPassword.addEventListener('input', checkPasswordMatch);
+        }
+    }
+    
+    if (changePasswordForm) {
+        changePasswordForm.removeEventListener('submit', handleChangePassword);
+        changePasswordForm.addEventListener('submit', handleChangePassword);
+    }
+}
+
+// ===== 비밀번호 확인 검증 =====
+function checkPasswordMatch() {
+    var password = document.getElementById('regPassword');
+    var passwordConfirm = document.getElementById('regPasswordConfirm');
+    var mismatchDiv = document.getElementById('passwordMismatch');
+    var submitBtn = document.getElementById('registerSubmitBtn');
+    
+    if (password && passwordConfirm && mismatchDiv && submitBtn) {
+        if (passwordConfirm.value && password.value !== passwordConfirm.value) {
+            mismatchDiv.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+        } else {
+            mismatchDiv.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+        }
     }
 }
 
@@ -144,6 +172,10 @@ function showRegister() {
     if (loginForm && registerForm) {
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
+        
+        // 폼 초기화
+        registerForm.reset();
+        checkPasswordMatch();
     }
 }
 
@@ -154,6 +186,9 @@ function showLogin() {
     if (registerForm && loginForm) {
         registerForm.style.display = 'none';
         loginForm.style.display = 'block';
+        
+        // 폼 초기화
+        loginForm.reset();
     }
 }
 
@@ -171,8 +206,6 @@ function handleLogin(e) {
         return;
     }
     
-    console.log('🔐 로그인 시도:', nickname);
-    
     google.script.run
         .withSuccessHandler(onLoginSuccess)
         .withFailureHandler(onLoginError)
@@ -182,68 +215,77 @@ function handleLogin(e) {
 function onLoginSuccess(result) {
     hideLoader();
     
-    console.log('📨 로그인 응답:', result);
-    
     if (result.success) {
         currentUser = result.user;
-        console.log('✅ 로그인 성공:', currentUser.nickname);
         
         // 세션 저장
         if (saveSession(currentUser)) {
-            console.log('💾 세션 저장 완료');
+            // 저장 성공
         }
         
         // 회원 목록 캐시 초기화
         membersCache = null;
         
+        // 기본 비밀번호 체크
+        if (currentUser.isAdmin && document.getElementById('loginPassword').value === 'admin123') {
+            if (confirm('보안을 위해 기본 관리자 비밀번호를 변경하는 것을 권장합니다.\n\n지금 비밀번호를 변경하시겠습니까?')) {
+                showApp();
+                setTimeout(function() {
+                    showChangePasswordModal();
+                }, 1000);
+                return;
+            }
+        }
+        
         // 앱 화면으로 전환
         showApp();
         
     } else {
-        console.log('❌ 로그인 실패:', result.message);
         alert('로그인 실패: ' + (result.message || '알 수 없는 오류'));
     }
 }
 
 function onLoginError(error) {
     hideLoader();
-    console.error('❌ 로그인 오류:', error);
     alert('로그인 중 오류가 발생했습니다: ' + (error.message || error));
 }
 
 // ===== 회원가입 처리 =====
 function handleRegister(e) {
     e.preventDefault();
-    showLoader();
     
-    var password = document.getElementById('regPassword').value;
-    var passwordConfirm = document.getElementById('regPasswordConfirm').value;
-    
-    // 비밀번호 확인
-    if (password !== passwordConfirm) {
-        hideLoader();
-        alert('비밀번호가 일치하지 않습니다.');
-        return;
-    }
-    
-    // 비밀번호 강도 체크
-    if (password.length < 6) {
-        hideLoader();
-        alert('비밀번호는 6자 이상이어야 합니다.');
-        return;
-    }
-    
-    // 필수 필드 검증
     var nickname = document.getElementById('regNickname').value.trim();
     var guild = document.getElementById('regGuild').value.trim();
     var server = document.getElementById('regServer').value.trim();
     var job = document.getElementById('regJob').value.trim();
+    var password = document.getElementById('regPassword').value;
+    var passwordConfirm = document.getElementById('regPasswordConfirm').value;
     
-    if (!nickname || !guild || !server || !job) {
-        hideLoader();
+    // 기본 검증
+    if (!nickname || !guild || !server || !job || !password || !passwordConfirm) {
         alert('모든 필드를 입력해주세요.');
         return;
     }
+    
+    // 닉네임 길이 체크
+    if (nickname.length < 2 || nickname.length > 20) {
+        alert('닉네임은 2-20자 사이로 입력해주세요.');
+        return;
+    }
+    
+    // 비밀번호 길이 체크
+    if (password.length < 6) {
+        alert('비밀번호는 6자 이상이어야 합니다.');
+        return;
+    }
+    
+    // 비밀번호 확인
+    if (password !== passwordConfirm) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    
+    showLoader();
     
     var userData = {
         nickname: nickname,
@@ -253,8 +295,6 @@ function handleRegister(e) {
         password: password
     };
     
-    console.log('📝 회원가입 시도:', userData.nickname);
-    
     google.script.run
         .withSuccessHandler(onRegisterSuccess)
         .withFailureHandler(onRegisterError)
@@ -263,8 +303,6 @@ function handleRegister(e) {
 
 function onRegisterSuccess(result) {
     hideLoader();
-    
-    console.log('📨 회원가입 응답:', result);
     
     if (result.success) {
         // 회원 목록 캐시 무효화
@@ -288,26 +326,82 @@ function onRegisterSuccess(result) {
             }
         }
         
-        console.log('✅ 회원가입 완료');
-        
     } else {
-        console.log('❌ 회원가입 실패:', result.message);
         alert('회원가입 실패: ' + (result.message || '알 수 없는 오류'));
     }
 }
 
 function onRegisterError(error) {
     hideLoader();
-    console.error('❌ 회원가입 오류:', error);
     alert('회원가입 중 오류가 발생했습니다: ' + (error.message || error));
+}
+
+// ===== 비밀번호 변경 기능 =====
+function showChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function closeChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    
+    var currentPassword = document.getElementById('currentPassword').value;
+    var newPassword = document.getElementById('newPassword').value;
+    var newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
+    
+    if (!currentPassword || !newPassword || !newPasswordConfirm) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        alert('새 비밀번호는 6자 이상이어야 합니다.');
+        return;
+    }
+    
+    if (newPassword !== newPasswordConfirm) {
+        alert('새 비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    
+    if (currentPassword === newPassword) {
+        alert('새 비밀번호는 현재 비밀번호와 달라야 합니다.');
+        return;
+    }
+    
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            hideLoader();
+            if (result.success) {
+                alert('비밀번호가 성공적으로 변경되었습니다.');
+                closeChangePasswordModal();
+            } else {
+                alert('비밀번호 변경 실패: ' + (result.message || '알 수 없는 오류'));
+            }
+        })
+        .withFailureHandler(function(error) {
+            hideLoader();
+            alert('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error));
+        })
+        .changePassword(currentUser.id, currentPassword, newPassword);
 }
 
 // ===== 앱 화면 표시 =====
 function showApp() {
-    console.log('🎯 앱 화면 전환 시작');
-    
     if (!currentUser) {
-        console.error('❌ 사용자 정보 없음 - 로그인 화면으로 돌아갑니다');
         logout();
         return;
     }
@@ -352,7 +446,8 @@ function showApp() {
         }
     }
     
-    console.log('✅ 앱 화면 전환 완료 - 사용자:', currentUser.nickname);
+    // 이벤트 리스너 재설정
+    setupFormEventListeners();
     
     // 대시보드 로드
     showPage('dashboard');
@@ -360,8 +455,6 @@ function showApp() {
 
 // ===== 로그아웃 =====
 function logout() {
-    console.log('🚪 로그아웃 시작');
-    
     // 세션 정리
     currentUser = null;
     membersCache = null;
@@ -392,14 +485,14 @@ function logout() {
         loginForm.reset();
     }
     
-    console.log('✅ 로그아웃 완료');
+    // 이벤트 리스너 재설정
+    setupFormEventListeners();
 }
 
 // ===== 페이지 네비게이션 =====
 function showPage(page) {
     // 세션 유효성 검증
     if (!validateCurrentSession()) {
-        console.log('❌ 세션 만료 - 로그인 화면으로 이동');
         logout();
         return;
     }
@@ -424,8 +517,6 @@ function showPage(page) {
     if (clickedMenu) {
         clickedMenu.classList.add('active');
     }
-    
-    console.log('📄 페이지 전환:', page);
     
     // 페이지 콘텐츠 로드
     switch(page) {
@@ -457,7 +548,6 @@ function showPage(page) {
             loadAdmin();
             break;
         default:
-            console.warn('알 수 없는 페이지:', page);
             loadDashboard();
     }
 }
@@ -484,13 +574,11 @@ function loadRecentActivities() {
 
 // ===== 길드원 목록 로드 =====
 function loadMembers() {
-    console.log('🚀 길드원 목록 페이지 로드 시작');
     showLoader();
     
     // 먼저 HTML 로드
     google.script.run
         .withSuccessHandler(function(html) {
-            console.log('✅ 길드원 HTML 로드 성공');
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
                 contentWrapper.innerHTML = html;
@@ -500,7 +588,6 @@ function loadMembers() {
             loadMembersData();
         })
         .withFailureHandler(function(error) {
-            console.error('❌ 길드원 HTML 로드 실패:', error);
             hideLoader();
             onError(error);
         })
@@ -508,19 +595,13 @@ function loadMembers() {
 }
 
 function loadMembersData() {
-    console.log('📊 회원 데이터 로드 시작');
-    
-    // 임시로 테스트 데이터 사용
+    // 서버에서 데이터 로드
     google.script.run
         .withSuccessHandler(function(members) {
-            console.log('✅ 서버 데이터 로드 성공:', members ? members.length : 0, '명');
-            
             // 데이터가 없으면 테스트 데이터 요청
             if (!members || members.length === 0) {
-                console.log('⚠️ 데이터 없음 - 테스트 데이터 시도');
                 google.script.run
                     .withSuccessHandler(function(testMembers) {
-                        console.log('🧪 테스트 데이터:', testMembers);
                         membersCache = testMembers;
                         hideLoader();
                         displayMembersTable(testMembers);
@@ -528,7 +609,6 @@ function loadMembersData() {
                         drawParticipationChart(testMembers);
                     })
                     .withFailureHandler(function(error) {
-                        console.error('테스트 데이터 실패:', error);
                         hideLoader();
                         displayEmptyMembersMessage();
                     })
@@ -543,75 +623,16 @@ function loadMembersData() {
             drawParticipationChart(members);
         })
         .withFailureHandler(function(error) {
-            console.error('❌ 서버 데이터 로드 실패:', error);
             hideLoader();
             displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
         })
         .getMembers();
-}
-    
-    // 서버에서 데이터 로드
-    google.script.run
-        .withSuccessHandler(function(members) {
-            console.log('✅ 서버 데이터 로드 성공:', members ? members.length : 0, '명');
-            
-            // 캐시 업데이트
-            membersCache = members;
-            
-            hideLoader();
-            
-            if (members && members.length > 0) {
-                displayMembersTable(members);
-                updateMembersStats(members);
-                drawParticipationChart(members);
-                console.log('✅ 회원 목록 표시 완료');
-            } else {
-                displayEmptyMembersMessage();
-                console.log('⚠️ 표시할 회원이 없습니다');
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('❌ 서버 데이터 로드 실패:', error);
-            hideLoader();
-            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
-        })
-        .getMembers();
-}
-
-function refreshMembersDataInBackground() {
-    console.log('🔄 백그라운드 데이터 새로고침');
-    
-    google.script.run
-        .withSuccessHandler(function(members) {
-            console.log('✅ 백그라운드 새로고침 성공:', members ? members.length : 0, '명');
-            
-            // 캐시 업데이트
-            var oldCount = membersCache ? membersCache.length : 0;
-            membersCache = members;
-            
-            // 데이터가 변경되었으면 자동 업데이트
-            if (oldCount !== (members ? members.length : 0)) {
-                console.log('📊 데이터 변경 감지 - 자동 업데이트');
-                if (members && members.length > 0) {
-                    displayMembersTable(members);
-                    updateMembersStats(members);
-                    drawParticipationChart(members);
-                }
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.warn('⚠️ 백그라운드 새로고침 실패:', error);
-        })
-        .forceRefreshMembers();
 }
 
 // ===== 회원 테이블 표시 =====
 function displayMembersTable(members) {
-    console.log('📋 회원 테이블 표시 시작:', members ? members.length : 0, '명');
-    
     var tbody = document.getElementById('membersTableBody');
     if (!tbody) {
-        console.error('❌ 테이블 본문을 찾을 수 없음');
         return;
     }
     
@@ -677,12 +698,9 @@ function displayMembersTable(members) {
     }
     
     tbody.innerHTML = html;
-    console.log('✅ 테이블 표시 완료');
 }
 
 function updateMembersStats(members) {
-    console.log('📊 회원 통계 업데이트:', members ? members.length : 0, '명');
-    
     var total = members ? members.length : 0;
     var active = members ? members.filter(function(m) { return m.status === '활성'; }).length : 0;
     var inactive = total - active;
@@ -695,7 +713,6 @@ function updateMembersStats(members) {
         var element = document.getElementById(id);
         if (element) {
             element.textContent = text;
-            console.log('통계 업데이트:', id, '=', text);
         }
     }
     
@@ -703,13 +720,9 @@ function updateMembersStats(members) {
     updateElementText('activeMembersCount', active + '명');
     updateElementText('inactiveMembersCount', inactive + '명');
     updateElementText('totalParticipationCount', totalParticipation + '회');
-    
-    console.log('✅ 통계 업데이트 완료');
 }
 
 function displayEmptyMembersMessage() {
-    console.log('📝 빈 회원 메시지 표시');
-    
     var tbody = document.getElementById('membersTableBody');
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
@@ -729,8 +742,6 @@ function displayEmptyMembersMessage() {
 }
 
 function displayErrorMessage(message) {
-    console.log('❌ 에러 메시지 표시:', message);
-    
     var tbody = document.getElementById('membersTableBody');
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
@@ -749,17 +760,13 @@ function displayErrorMessage(message) {
     updateMembersStats([]);
 }
 
-// ===== 강제 새로고침 함수들 =====
+// ===== 기타 함수들은 기존과 동일하게 유지 =====
 function forceRefreshMembersData() {
-    console.log('💪 강제 회원 목록 새로고침');
     showLoader();
-    
     membersCache = null;
     
     google.script.run
         .withSuccessHandler(function(members) {
-            console.log('✅ 강제 새로고침 성공:', members ? members.length : 0, '명');
-            
             membersCache = members;
             hideLoader();
             
@@ -767,7 +774,6 @@ function forceRefreshMembersData() {
                 displayMembersTable(members);
                 updateMembersStats(members);
                 drawParticipationChart(members);
-                console.log('🎉 회원 목록이 새로고침되었습니다!');
             } else {
                 displayEmptyMembersMessage();
                 
@@ -777,7 +783,6 @@ function forceRefreshMembersData() {
             }
         })
         .withFailureHandler(function(error) {
-            console.error('❌ 강제 새로고침 실패:', error);
             hideLoader();
             displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
         })
@@ -785,12 +790,10 @@ function forceRefreshMembersData() {
 }
 
 function createTestDataNow() {
-    console.log('🧪 테스트 데이터 생성 시작');
     showLoader();
     
     google.script.run
         .withSuccessHandler(function(result) {
-            console.log('✅ 테스트 데이터 생성 완료:', result);
             hideLoader();
             
             if (result.success) {
@@ -805,7 +808,6 @@ function createTestDataNow() {
             }
         })
         .withFailureHandler(function(error) {
-            console.error('❌ 테스트 데이터 생성 실패:', error);
             hideLoader();
             alert('테스트 데이터 생성 실패: ' + (error.message || error));
         })
@@ -813,19 +815,15 @@ function createTestDataNow() {
 }
 
 function exportMembersList() {
-    console.log('목록 새로고침 실행');
     forceRefreshMembersData();
 }
 
 function refreshMembersList() {
-    console.log('길드원 목록 새로고침');
     forceRefreshMembersData();
 }
 
 // ===== 검색 및 필터링 함수들 =====
 function searchMembers(keyword) {
-    console.log('회원 검색:', keyword);
-    
     var rows = document.querySelectorAll('.member-row');
     var lowerKeyword = keyword.toLowerCase();
     var visibleCount = 0;
@@ -845,13 +843,9 @@ function searchMembers(keyword) {
             }
         }
     }
-    
-    console.log('검색 결과:', visibleCount + '명 표시');
 }
 
 function filterMembers(status) {
-    console.log('회원 상태 필터:', status);
-    
     var rows = document.querySelectorAll('.member-row');
     var visibleCount = 0;
     
@@ -866,13 +860,9 @@ function filterMembers(status) {
             row.style.display = 'none';
         }
     }
-    
-    console.log('필터 결과:', visibleCount + '명 표시');
 }
 
 function filterMembersByJob(job) {
-    console.log('회원 직업 필터:', job);
-    
     var rows = document.querySelectorAll('.member-row');
     var visibleCount = 0;
     
@@ -887,23 +877,17 @@ function filterMembersByJob(job) {
             row.style.display = 'none';
         }
     }
-    
-    console.log('직업 필터 결과:', visibleCount + '명 표시');
 }
 
 function sortMembers(sortBy) {
-    console.log('회원 정렬:', sortBy);
     forceRefreshMembersData();
 }
 
 function showMemberDetail(nickname) {
-    console.log('회원 상세 정보 표시:', nickname);
     alert('회원 상세 정보: ' + nickname + '\n\n상세 정보 기능은 준비 중입니다.');
 }
 
 function drawParticipationChart(members) {
-    console.log('참여율 차트 그리기');
-    
     var canvas = document.getElementById('participationChart');
     if (canvas && members && members.length > 0) {
         var ctx = canvas.getContext('2d');
@@ -925,8 +909,6 @@ function drawParticipationChart(members) {
         ctx.font = '12px Arial';
         ctx.fillStyle = '#999';
         ctx.fillText('※ 상세 차트는 준비 중입니다', canvas.width/2, canvas.height/2 + 25);
-        
-        console.log('차트 그리기 완료');
     } else if (canvas) {
         var ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -955,7 +937,7 @@ function getJobColor(job) {
     return jobColors[job] || '#718096';
 }
 
-// ===== 기타 페이지 로드 함수들 =====
+// ===== 기타 페이지 로드 함수들 (기존과 동일) =====
 function loadBossRecord() {
     showLoader();
     google.script.run
@@ -1038,12 +1020,10 @@ function loadDistribution() {
 }
 
 function loadStatistics() {
-    console.log('통계 페이지 로드 시작');
     showLoader();
     
     google.script.run
         .withSuccessHandler(function(html) {
-            console.log('통계 HTML 로드 성공');
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
                 contentWrapper.innerHTML = html;
@@ -1052,28 +1032,22 @@ function loadStatistics() {
             hideLoader();
         })
         .withFailureHandler(function(error) {
-            console.error('통계 HTML 로드 실패:', error);
             onError(error);
         })
         .getStatisticsHTML();
 }
 
 function loadStatisticsData() {
-    console.log('통계 데이터 로드 시작');
-    
     google.script.run
         .withSuccessHandler(function(statistics) {
-            console.log('보스 통계 로드 성공:', statistics);
             if (statistics && statistics.bossStats && statistics.memberStats) {
                 displayParticipationRanking(statistics.memberStats);
                 displayBossStatisticsChart(statistics.bossStats);
             } else {
-                console.warn('통계 데이터가 비어있습니다');
                 displayEmptyStatistics();
             }
         })
         .withFailureHandler(function(error) {
-            console.error('보스 통계 로드 실패:', error);
             displayEmptyStatistics();
         })
         .getBossStatistics();
@@ -1092,10 +1066,8 @@ function displayEmptyStatistics() {
 }
 
 function displayParticipationRanking(memberStats) {
-    console.log('참여율 순위 표시 시작:', memberStats);
     var tbody = document.getElementById('participationRankingBody');
     if (!tbody) {
-        console.error('participationRankingBody 요소를 찾을 수 없습니다');
         return;
     }
     
@@ -1126,14 +1098,11 @@ function displayParticipationRanking(memberStats) {
     }
     
     tbody.innerHTML = html;
-    console.log('참여율 순위 표시 완료');
 }
 
 function displayBossStatisticsChart(bossStats) {
-    console.log('보스 통계 차트 표시 시작:', bossStats);
     var container = document.getElementById('bossStatistics');
     if (!container) {
-        console.error('bossStatistics 요소를 찾을 수 없습니다');
         return;
     }
     
@@ -1165,7 +1134,6 @@ function displayBossStatisticsChart(bossStats) {
     }
     
     container.innerHTML = html;
-    console.log('보스 통계 차트 표시 완료');
 }
 
 function loadAdmin() {
@@ -1174,12 +1142,10 @@ function loadAdmin() {
         return;
     }
     
-    console.log('관리자 페이지 로드 시작');
     showLoader();
     
     google.script.run
         .withSuccessHandler(function(html) {
-            console.log('관리자 HTML 로드 성공');
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
                 contentWrapper.innerHTML = html;
@@ -1188,7 +1154,6 @@ function loadAdmin() {
             hideLoader();
         })
         .withFailureHandler(function(error) {
-            console.error('관리자 페이지 로드 실패:', error);
             onError(error);
         })
         .getAdminHTML();
@@ -1212,7 +1177,6 @@ function formatNumber(num) {
 
 function onError(error) {
     hideLoader();
-    console.error('❌ 오류:', error);
     alert('오류가 발생했습니다: ' + (error.message || error));
 }
 
