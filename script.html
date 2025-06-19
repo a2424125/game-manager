@@ -69,7 +69,7 @@ function onLoginSuccess(result) {
     }
 }
 
-// 회원가입 처리
+// ===== 회원가입 처리 (개선됨) =====
 function handleRegister(e) {
     e.preventDefault();
     showLoader();
@@ -84,36 +84,76 @@ function handleRegister(e) {
         return;
     }
     
-    // 비밀번호 강도 체크 (선택사항)
+    // 비밀번호 강도 체크
     if (password.length < 6) {
         hideLoader();
         alert('비밀번호는 6자 이상이어야 합니다.');
         return;
     }
     
+    // 필수 필드 검증
+    var nickname = document.getElementById('regNickname').value.trim();
+    var guild = document.getElementById('regGuild').value.trim();
+    var server = document.getElementById('regServer').value.trim();
+    var job = document.getElementById('regJob').value.trim();
+    
+    if (!nickname || !guild || !server || !job) {
+        hideLoader();
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
     var userData = {
-        nickname: document.getElementById('regNickname').value,
-        guild: document.getElementById('regGuild').value,
-        server: document.getElementById('regServer').value,
-        job: document.getElementById('regJob').value,  // 직업 추가
+        nickname: nickname,
+        guild: guild,
+        server: server,
+        job: job,
         password: password
     };
     
+    console.log('회원가입 요청 데이터:', userData);
+    
     google.script.run
         .withSuccessHandler(onRegisterSuccess)
-        .withFailureHandler(onError)
+        .withFailureHandler(onRegisterError)
         .register(userData);
 }
 
+// ===== 회원가입 성공 처리 (개선됨) =====
 function onRegisterSuccess(result) {
     hideLoader();
     
+    console.log('회원가입 응답:', result);
+    
     if (result.success) {
+        // 성공 메시지 표시
         alert(result.message);
+        
+        // 폼 초기화
+        document.getElementById('registerForm').reset();
+        
+        // 로그인 폼으로 전환
         showLogin();
+        
+        // 회원가입한 닉네임을 로그인 폼에 자동 입력
+        if (result.newMember && result.newMember.nickname) {
+            document.getElementById('loginNickname').value = result.newMember.nickname;
+            document.getElementById('loginPassword').focus();
+        }
+        
+        // 길드원 목록 캐시 초기화 (다음 로그인 후 새로고침되도록)
+        console.log('회원가입 완료 - 길드원 목록 캐시 초기화 예약');
+        
     } else {
-        alert(result.message);
+        alert('회원가입 실패: ' + result.message);
     }
+}
+
+// ===== 회원가입 실패 처리 (새로 추가) =====
+function onRegisterError(error) {
+    hideLoader();
+    console.error('회원가입 오류:', error);
+    alert('회원가입 중 오류가 발생했습니다: ' + error.message);
 }
 
 // 앱 표시
@@ -374,158 +414,365 @@ function handleBossRecord(e) {
         .saveBossRecord(recordData);
 }
 
-// ===== 길드원 목록 페이지 관련 함수들 =====
+// ===== 길드원 목록 페이지 관련 함수들 (개선됨) =====
 
-// 길드원 목록 페이지 로드
 function loadMembers() {
-    console.log('길드원 목록 페이지 로드 시작');
+    console.log('🚀 길드원 목록 페이지 로드 시작');
     showLoader();
     
-    google.script.run
-        .withSuccessHandler(function(html) {
-            console.log('길드원 목록 HTML 로드 성공');
-            document.getElementById('contentWrapper').innerHTML = html;
-            // HTML 로드 후 바로 데이터 로드
-            setTimeout(function() {
-                loadMembersData();
-            }, 100);
-            hideLoader();
-        })
-        .withFailureHandler(function(error) {
-            console.error('길드원 목록 HTML 로드 실패:', error);
-            hideLoader();
-            alert('길드원 목록을 불러오는데 실패했습니다: ' + error.message);
-        })
-        .getMembersHTML();
+    // 먼저 HTML을 간단한 버전으로 직접 생성해서 테스트
+    var simpleHTML = `
+        <div class="page-header">
+            <h1 class="page-title">길드원 목록</h1>
+            <p class="page-subtitle">전체 길드원 현황</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>길드원 목록</h3>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="forceLoadMembersNow()">
+                        <span class="material-icons">refresh</span>
+                        지금 로드하기
+                    </button>
+                    <button class="btn btn-secondary" onclick="testBasicConnection()">
+                        <span class="material-icons">settings</span>
+                        연결 테스트
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>순위</th>
+                            <th>닉네임</th>
+                            <th>길드</th>
+                            <th>직업</th>
+                            <th>상태</th>
+                            <th>가입일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <div style="color: #00BCD4;">
+                                    <span class="material-icons" style="font-size: 48px;">people</span>
+                                    <p><strong>길드원 데이터 로딩 중...</strong></p>
+                                    <p>잠시만 기다려주세요</p>
+                                    <div style="margin-top: 20px;">
+                                        <button class="btn btn-primary" onclick="directLoadMembers()">직접 로드</button>
+                                        <button class="btn btn-secondary" onclick="checkSheetStatus()">시트 확인</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>디버깅 정보</h3>
+            </div>
+            <div id="debugInfo" style="padding: 20px; background: #f8f9fa; font-family: monospace; font-size: 12px;">
+                시스템 준비 중...
+            </div>
+        </div>
+    `;
+    
+    // HTML 즉시 표시
+    document.getElementById('contentWrapper').innerHTML = simpleHTML;
+    hideLoader();
+    
+    // 로그 표시
+    updateDebugInfo('✅ HTML 로드 완료');
+    updateDebugInfo('🔄 서버 연결 테스트 시작...');
+    
+    // 자동으로 데이터 로드 시도
+    setTimeout(function() {
+        directLoadMembers();
+    }, 1000);
 }
 
-// 길드원 데이터 로드 및 표시 함수 (개선됨)
-function loadMembersData() {
-    console.log('길드원 데이터 로드 시작');
+// ===== 직접 길드원 데이터 로드 =====
+function directLoadMembers() {
+    console.log('🔄 직접 길드원 데이터 로드 시작');
+    updateDebugInfo('🔄 직접 데이터 로드 시작...');
+    
     showLoader();
     
-    // 디버깅을 위해 먼저 시트 상태 확인
     google.script.run
-        .withSuccessHandler(function() {
-            console.log('시트 디버깅 완료, 실제 데이터 로드 시작');
+        .withSuccessHandler(function(members) {
+            console.log('✅ 데이터 로드 성공:', members);
+            updateDebugInfo('✅ 데이터 로드 성공: ' + members.length + '명');
+            hideLoader();
             
-            // 실제 회원 데이터 로드
-            google.script.run
-                .withSuccessHandler(function(members) {
-                    console.log('길드원 데이터 로드 성공:', members);
-                    hideLoader();
-                    
-                    if (members && members.length > 0) {
-                        console.log('회원 데이터 존재, 테이블 표시');
-                        displayMembersTable(members);
-                        updateMembersStats(members);
-                        drawParticipationChart(members);
-                    } else {
-                        console.log('회원 데이터 없음, 빈 메시지 표시');
-                        displayEmptyMembersMessage();
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    console.error('길드원 데이터 로드 실패:', error);
-                    hideLoader();
-                    displayErrorMessage('길드원 데이터를 불러오는데 실패했습니다: ' + error.message);
-                })
-                .getMembers();
+            if (members && members.length > 0) {
+                displayMembersTableSimple(members);
+                updateDebugInfo('✅ 테이블 표시 완료');
+                alert('성공! ' + members.length + '명의 길드원을 찾았습니다.');
+            } else {
+                updateDebugInfo('⚠️ 데이터가 비어있음 - 회원가입 필요');
+                showEmptyMessage();
+            }
         })
         .withFailureHandler(function(error) {
-            console.error('시트 디버깅 실패:', error);
+            console.error('❌ 데이터 로드 실패:', error);
+            updateDebugInfo('❌ 데이터 로드 실패: ' + error.message);
             hideLoader();
+            
+            showErrorMessage('데이터 로드 실패: ' + error.message);
+        })
+        .getMembers();
+}
+
+// ===== 기본 연결 테스트 =====
+function testBasicConnection() {
+    console.log('🔗 기본 연결 테스트 시작');
+    updateDebugInfo('🔗 서버 연결 테스트 중...');
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            console.log('✅ 연결 테스트 성공');
+            updateDebugInfo('✅ 서버 연결 정상');
+            alert('서버 연결이 정상입니다!');
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 연결 테스트 실패:', error);
+            updateDebugInfo('❌ 서버 연결 실패: ' + error.message);
+            alert('서버 연결에 문제가 있습니다: ' + error.message);
+        })
+        .checkAllSheets();
+}
+
+// ===== 시트 상태 확인 =====
+function checkSheetStatus() {
+    console.log('📋 시트 상태 확인 시작');
+    updateDebugInfo('📋 시트 상태 확인 중...');
+    
+    google.script.run
+        .withSuccessHandler(function() {
+            console.log('✅ 시트 상태 확인 완료');
+            updateDebugInfo('✅ 시트 상태 정상');
+            
+            // 시트 확인 후 디버깅 실행
+            setTimeout(function() {
+                debugMembersAdvanced();
+            }, 500);
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 시트 상태 확인 실패:', error);
+            updateDebugInfo('❌ 시트 상태 확인 실패: ' + error.message);
         })
         .debugMemberSheet();
 }
 
-// 길드원 테이블 표시 함수 (개선됨)
-function displayMembersTable(members) {
-    console.log('길드원 테이블 표시 시작:', members.length + '명');
+// ===== 고급 디버깅 =====
+function debugMembersAdvanced() {
+    console.log('🔍 고급 디버깅 시작');
+    updateDebugInfo('🔍 고급 디버깅 실행 중...');
+    
+    google.script.run
+        .withSuccessHandler(function(validation) {
+            console.log('✅ 고급 디버깅 완료:', validation);
+            
+            var message = '🔍 고급 디버깅 결과:\n\n';
+            
+            if (validation.success) {
+                message += validation.summary + '\n\n';
+                updateDebugInfo('✅ ' + validation.summary);
+                
+                if (validation.errors.length > 0) {
+                    message += '🚨 오류:\n' + validation.errors.join('\n') + '\n\n';
+                    validation.errors.forEach(function(error) {
+                        updateDebugInfo('🚨 ' + error);
+                    });
+                }
+                
+                if (validation.warnings.length > 0) {
+                    message += '⚠️ 경고:\n' + validation.warnings.join('\n') + '\n\n';
+                    validation.warnings.forEach(function(warning) {
+                        updateDebugInfo('⚠️ ' + warning);
+                    });
+                }
+                
+                if (validation.errors.length === 0 && validation.warnings.length === 0) {
+                    message += '✅ 데이터에 문제가 없습니다!';
+                    updateDebugInfo('✅ 모든 검증 통과');
+                    
+                    // 문제없으면 강제 새로고침
+                    setTimeout(function() {
+                        forceRefreshMembersNow();
+                    }, 1000);
+                }
+            } else {
+                message += '❌ 검증 실패: ' + validation.message;
+                updateDebugInfo('❌ 검증 실패: ' + validation.message);
+            }
+            
+            console.log(message);
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 고급 디버깅 실패:', error);
+            updateDebugInfo('❌ 고급 디버깅 실패: ' + error.message);
+        })
+        .validateMemberData();
+}
+
+// ===== 강제 새로고침 (새 버전) =====
+function forceRefreshMembersNow() {
+    console.log('💪 강제 새로고침 시작');
+    updateDebugInfo('💪 강제 데이터 새로고침 시작...');
+    
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('✅ 강제 새로고침 성공:', members.length + '명');
+            updateDebugInfo('✅ 강제 새로고침 성공: ' + members.length + '명');
+            hideLoader();
+            
+            if (members && members.length > 0) {
+                displayMembersTableSimple(members);
+                updateDebugInfo('✅ 테이블 업데이트 완료');
+                alert('🎉 성공!\n' + members.length + '명의 길드원 데이터를 불러왔습니다!');
+            } else {
+                updateDebugInfo('⚠️ 여전히 데이터가 없음');
+                showEmptyMessage();
+                
+                if (confirm('길드원 데이터가 없습니다.\n테스트 데이터를 생성하시겠습니까?')) {
+                    createTestDataNow();
+                }
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 강제 새로고침 실패:', error);
+            updateDebugInfo('❌ 강제 새로고침 실패: ' + error.message);
+            hideLoader();
+            
+            showErrorMessage('강제 새로고침 실패: ' + error.message);
+        })
+        .forceRefreshMembers();
+}
+
+// ===== 즉시 테스트 데이터 생성 =====
+function createTestDataNow() {
+    console.log('🧪 테스트 데이터 생성 시작');
+    updateDebugInfo('🧪 테스트 데이터 생성 중...');
+    
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            console.log('✅ 테스트 데이터 생성 완료:', result);
+            updateDebugInfo('✅ 테스트 데이터 생성 완료');
+            hideLoader();
+            
+            if (result.success) {
+                alert(result.message);
+                // 테스트 데이터 생성 후 바로 로드
+                setTimeout(function() {
+                    forceRefreshMembersNow();
+                }, 1000);
+            } else {
+                updateDebugInfo('❌ 테스트 데이터 생성 실패: ' + result.message);
+                alert('테스트 데이터 생성 실패: ' + result.message);
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 테스트 데이터 생성 실패:', error);
+            updateDebugInfo('❌ 테스트 데이터 생성 실패: ' + error.message);
+            hideLoader();
+            alert('테스트 데이터 생성 실패: ' + error.message);
+        })
+        .setupCompleteTestEnvironment();
+}
+
+// ===== 간단한 테이블 표시 =====
+function displayMembersTableSimple(members) {
+    console.log('📋 간단한 테이블 표시:', members.length + '명');
     
     var tbody = document.getElementById('membersTableBody');
     if (!tbody) {
-        console.error('membersTableBody 요소를 찾을 수 없습니다');
-        return;
-    }
-    
-    if (!members || members.length === 0) {
-        displayEmptyMembersMessage();
+        console.error('❌ 테이블 본문을 찾을 수 없음');
         return;
     }
     
     var html = '';
-    var totalParticipation = members.reduce(function(sum, member) {
-        return sum + (member.participationCount || 0);
-    }, 0);
-    
-    console.log('총 참여 횟수:', totalParticipation);
     
     for (var i = 0; i < members.length; i++) {
         var member = members[i];
-        console.log('회원 처리 중:', member.nickname, '참여횟수:', member.participationCount);
+        var statusClass = member.status === '활성' ? 'style="color: green;"' : 'style="color: orange;"';
         
-        var participationRate = totalParticipation > 0 ? 
-            Math.round((member.participationCount / totalParticipation) * 100) : 0;
-        
-        var statusClass = member.status === '활성' ? 'active' : 'inactive';
-        var jobColor = getJobColor(member.job);
-        var roleText = member.isAdmin ? '관리자' : '일반회원';
-        var roleClass = member.isAdmin ? 'admin' : 'member';
-        
-        var lastParticipationText = member.lastParticipation ? 
-            new Date(member.lastParticipation).toLocaleDateString() : '참여 없음';
-        
-        html += '<tr class="member-row" data-status="' + member.status + '" data-job="' + member.job + '">' +
-            '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
-            '<td>' +
-                '<div class="member-name-cell">' +
-                    '<div class="member-avatar-sm">' +
-                        '<span class="avatar-text">' + (member.nickname ? member.nickname.substring(0, 1) : '?') + '</span>' +
-                    '</div>' +
-                    '<strong class="member-nickname">' + (member.nickname || 'Unknown') + '</strong>' +
-                '</div>' +
-            '</td>' +
+        html += '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td><strong>' + (member.nickname || 'Unknown') + '</strong></td>' +
             '<td>' + (member.guild || '-') + '</td>' +
-            '<td>' + (member.server || '-') + '</td>' +
-            '<td>' +
-                '<span class="job-badge" style="background-color: ' + jobColor + '20; color: ' + jobColor + '; border: 1px solid ' + jobColor + '40;">' +
-                    (member.job || '미설정') +
-                '</span>' +
-            '</td>' +
+            '<td>' + (member.job || '-') + '</td>' +
+            '<td><span ' + statusClass + '>' + (member.status || '활성') + '</span></td>' +
             '<td>' + (member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '-') + '</td>' +
-            '<td><span class="status-badge ' + statusClass + '">' + (member.status || '활성') + '</span></td>' +
-            '<td>' +
-                '<div class="participation-cell">' +
-                    '<strong>' + (member.participationCount || 0) + '회</strong>' +
-                '</div>' +
-            '</td>' +
-            '<td>' +
-                '<div class="participation-rate">' +
-                    '<div class="rate-bar">' +
-                        '<div class="rate-fill" style="width: ' + Math.min(participationRate * 2, 100) + '%"></div>' +
-                    '</div>' +
-                    '<span class="rate-text">' + participationRate + '%</span>' +
-                '</div>' +
-            '</td>' +
-            '<td>' + lastParticipationText + '</td>' +
-            '<td><span class="role-badge ' + roleClass + '">' + roleText + '</span></td>' +
         '</tr>';
     }
     
     tbody.innerHTML = html;
-    console.log('테이블 HTML 설정 완료');
-    
-    // 테이블 행에 클릭 이벤트 추가
-    var rows = document.querySelectorAll('.member-row');
-    for (var i = 0; i < rows.length; i++) {
-        rows[i].addEventListener('click', function() {
-            var nickname = this.querySelector('.member-nickname').textContent;
-            showMemberDetail(nickname);
-        });
+    console.log('✅ 테이블 표시 완료');
+}
+
+// ===== 빈 메시지 표시 =====
+function showEmptyMessage() {
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">' +
+            '<div style="color: #999;">' +
+                '<span class="material-icons" style="font-size: 48px;">people_outline</span>' +
+                '<p><strong>등록된 길드원이 없습니다</strong></p>' +
+                '<p>회원가입을 하거나 테스트 데이터를 생성하세요</p>' +
+                '<div style="margin-top: 20px;">' +
+                    '<button class="btn btn-primary" onclick="createTestDataNow()">테스트 데이터 생성</button>' +
+                    '<button class="btn btn-secondary" onclick="forceRefreshMembersNow()">다시 시도</button>' +
+                '</div>' +
+            '</div>' +
+        '</td></tr>';
     }
-    
-    console.log('테이블 이벤트 설정 완료');
+}
+
+// ===== 에러 메시지 표시 =====
+function showErrorMessage(message) {
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">' +
+            '<div style="color: #f44336;">' +
+                '<span class="material-icons" style="font-size: 48px;">error</span>' +
+                '<p><strong>오류가 발생했습니다</strong></p>' +
+                '<p>' + message + '</p>' +
+                '<div style="margin-top: 20px;">' +
+                    '<button class="btn btn-primary" onclick="directLoadMembers()">다시 시도</button>' +
+                    '<button class="btn btn-secondary" onclick="testBasicConnection()">연결 테스트</button>' +
+                '</div>' +
+            '</div>' +
+        '</td></tr>';
+    }
+}
+
+// ===== 디버깅 정보 업데이트 =====
+function updateDebugInfo(message) {
+    var debugDiv = document.getElementById('debugInfo');
+    if (debugDiv) {
+        var timestamp = new Date().toLocaleTimeString();
+        var currentContent = debugDiv.innerHTML;
+        
+        debugDiv.innerHTML = currentContent + '<br>[' + timestamp + '] ' + message;
+        debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+    console.log('[DEBUG] ' + message);
+}
+
+// ===== 강제 길드원 로드 (이전 함수 대체) =====
+function forceLoadMembersData() {
+    forceRefreshMembersNow();
 }
 
 // 통계 업데이트 함수 (안전성 개선)
@@ -544,6 +791,7 @@ function updateMembersStats(members) {
         var element = document.getElementById(id);
         if (element) {
             element.textContent = text;
+            console.log(`통계 업데이트: ${id} = ${text}`);
         } else {
             console.warn('요소를 찾을 수 없음:', id);
         }
@@ -554,7 +802,7 @@ function updateMembersStats(members) {
     updateElementText('inactiveMembersCount', inactive + '명');
     updateElementText('totalParticipationCount', totalParticipation + '회');
     
-    console.log('통계 업데이트 완료 - 총:', total, '활성:', active, '참여:', totalParticipation);
+    console.log('✅ 통계 업데이트 완료 - 총:', total, '활성:', active, '참여:', totalParticipation);
 }
 
 // 빈 메시지 표시 (개선됨)
@@ -566,12 +814,11 @@ function displayEmptyMembersMessage() {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
             '<div class="empty-members">' +
                 '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people_outline</span>' +
-                '<p>등록된 길드원이 없습니다.</p>' +
-                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">회원 가입을 통해 길드원을 등록하거나</p>' +
-                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">관리자에게 문의하세요.</p>' +
+                '<p><strong>등록된 길드원이 없습니다</strong></p>' +
+                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">새로 가입한 회원이 있다면 아래 버튼을 눌러보세요.</p>' +
                 '<div style="margin-top: 20px;">' +
-                    '<button class="btn btn-primary" onclick="showPage(\'admin\'); return false;" style="margin-right: 10px;">길드원 관리하기</button>' +
-                    '<button class="btn btn-secondary" onclick="loadMembersData(); return false;">다시 시도</button>' +
+                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">길드원 목록 새로고침</button>' +
+                    '<button class="btn btn-secondary" onclick="debugMembers(); return false;">문제 진단하기</button>' +
                 '</div>' +
             '</div>' +
         '</td></tr>';
@@ -590,11 +837,11 @@ function displayErrorMessage(message) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
             '<div class="error-members">' +
                 '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px; color: #f44336;">error</span>' +
-                '<p style="color: #f44336; font-weight: 500;">오류가 발생했습니다</p>' +
+                '<p style="color: #f44336; font-weight: 500;"><strong>오류가 발생했습니다</strong></p>' +
                 '<p style="font-size: 14px; margin: 8px 0;">' + message + '</p>' +
                 '<div style="margin-top: 20px;">' +
-                    '<button class="btn btn-secondary" onclick="loadMembersData(); return false;" style="margin-right: 10px;">다시 시도</button>' +
-                    '<button class="btn btn-outline" onclick="debugMembers(); return false;">문제 진단</button>' +
+                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">다시 시도</button>' +
+                    '<button class="btn btn-secondary" onclick="debugMembers(); return false;">문제 진단</button>' +
                 '</div>' +
             '</div>' +
         '</td></tr>';
@@ -604,34 +851,98 @@ function displayErrorMessage(message) {
     updateMembersStats([]);
 }
 
-// 문제 진단 함수
+// ===== 강제 새로고침 함수들 (새로 추가) =====
+function forceRefreshMembersData() {
+    console.log('=== 강제 길드원 목록 새로고침 ===');
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('✅ 강제 새로고침 성공:', members.length + '명');
+            hideLoader();
+            
+            if (members && members.length > 0) {
+                displayMembersTable(members);
+                updateMembersStats(members);
+                drawParticipationChart(members);
+                alert('길드원 목록이 새로고침되었습니다!\n총 ' + members.length + '명의 길드원이 확인되었습니다.');
+            } else {
+                displayEmptyMembersMessage();
+                alert('아직 등록된 길드원이 없습니다.\n회원가입을 통해 길드원을 등록해주세요.');
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 강제 새로고침 실패:', error);
+            hideLoader();
+            displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + error.message);
+        })
+        .forceRefreshMembers();
+}
+
+// 문제 진단 함수 (개선됨)
 function debugMembers() {
-    console.log('회원 목록 문제 진단 시작');
+    console.log('=== 회원 목록 문제 진단 시작 ===');
     showLoader();
     
     google.script.run
         .withSuccessHandler(function() {
-            console.log('진단 완료');
+            console.log('✅ 진단 완료');
             hideLoader();
-            alert('진단이 완료되었습니다. 브라우저 개발자 도구의 콘솔을 확인하세요.');
+            
+            // 진단 후 데이터 검증 실행
+            google.script.run
+                .withSuccessHandler(function(validation) {
+                    var message = '📊 진단 및 검증 완료!\n\n';
+                    
+                    if (validation.success) {
+                        message += validation.summary + '\n\n';
+                        
+                        if (validation.errors.length > 0) {
+                            message += '🚨 발견된 오류:\n' + validation.errors.slice(0, 5).join('\n') + '\n\n';
+                        }
+                        
+                        if (validation.warnings.length > 0) {
+                            message += '⚠️ 경고사항:\n' + validation.warnings.slice(0, 5).join('\n') + '\n\n';
+                        }
+                        
+                        if (validation.errors.length === 0 && validation.warnings.length === 0) {
+                            message += '✅ 데이터에 문제가 없습니다!';
+                        }
+                    } else {
+                        message += '❌ 검증 실패: ' + validation.message;
+                    }
+                    
+                    message += '\n\n상세한 진단 결과는 브라우저 개발자 도구 콘솔을 확인하세요.';
+                    alert(message);
+                    
+                    // 진단 후 자동으로 데이터 새로고침
+                    setTimeout(function() {
+                        forceRefreshMembersData();
+                    }, 1000);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('❌ 데이터 검증 실패:', error);
+                    alert('데이터 검증 중 오류가 발생했습니다: ' + error.message);
+                })
+                .validateMemberData();
         })
         .withFailureHandler(function(error) {
-            console.error('진단 실패:', error);
+            console.error('❌ 진단 실패:', error);
             hideLoader();
             alert('진단 중 오류가 발생했습니다: ' + error.message);
         })
         .checkAllSheets();
 }
 
-// ===== 목록 내보내기 = 새로고침 기능으로 변경 =====
+// ===== 목록 내보내기 및 새로고침 기능 =====
 function exportMembersList() {
     console.log('목록 새로고침 실행 (기존 내보내기 버튼)');
-    refreshMembersList();
+    forceRefreshMembersData();
 }
 
 function refreshMembersList() {
     console.log('길드원 목록 새로고침');
-    loadMembersData();
+    forceRefreshMembersData();
 }
 
 // 검색 및 필터링 함수들 (개선됨)
@@ -707,7 +1018,7 @@ function filterMembersByJob(job) {
 function sortMembers(sortBy) {
     console.log('회원 정렬:', sortBy);
     // 현재는 단순히 데이터를 다시 로드하지만, 나중에 클라이언트 사이드 정렬로 개선 가능
-    loadMembersData();
+    forceRefreshMembersData();
 }
 
 // 회원 상세 정보 표시
@@ -737,12 +1048,17 @@ function drawParticipationChart(members) {
         ctx.fillStyle = '#00BCD4';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('참여율 분포 (준비 중)', canvas.width/2, canvas.height/2 - 10);
+        ctx.fillText('참여율 분포', canvas.width/2, canvas.height/2 - 20);
         
         // 부제목
         ctx.fillStyle = '#666';
         ctx.font = '14px Arial';
-        ctx.fillText('총 ' + members.length + '명의 길드원', canvas.width/2, canvas.height/2 + 15);
+        ctx.fillText('총 ' + members.length + '명의 길드원', canvas.width/2, canvas.height/2);
+        
+        // 새로고침 안내
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#999';
+        ctx.fillText('※ 상세 차트는 준비 중입니다', canvas.width/2, canvas.height/2 + 25);
         
         console.log('차트 그리기 완료');
     } else if (canvas) {
@@ -754,136 +1070,6 @@ function drawParticipationChart(members) {
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('데이터 없음', canvas.width/2, canvas.height/2);
-    }
-}
-    
-  
-
-// 통계 업데이트 함수
-function updateMembersStats(members) {
-    var total = members.length;
-    var active = members.filter(function(m) { return m.status === '활성'; }).length;
-    var inactive = total - active;
-    var totalParticipation = members.reduce(function(sum, member) {
-        return sum + (member.participationCount || 0);
-    }, 0);
-    
-    var totalMembersEl = document.getElementById('totalMembersCount');
-    var activeMembersEl = document.getElementById('activeMembersCount');
-    var inactiveMembersEl = document.getElementById('inactiveMembersCount');
-    var totalParticipationEl = document.getElementById('totalParticipationCount');
-    
-    if (totalMembersEl) totalMembersEl.textContent = total + '명';
-    if (activeMembersEl) activeMembersEl.textContent = active + '명';
-    if (inactiveMembersEl) inactiveMembersEl.textContent = inactive + '명';
-    if (totalParticipationEl) totalParticipationEl.textContent = totalParticipation + '회';
-}
-
-// 빈 메시지 표시
-function displayEmptyMembersMessage() {
-    var tbody = document.getElementById('membersTableBody');
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
-            '<div class="empty-members">' +
-                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people_outline</span>' +
-                '<p>등록된 길드원이 없습니다.</p>' +
-                '<button class="btn btn-primary" onclick="showPage(\'admin\')">길드원 관리하기</button>' +
-            '</div>' +
-        '</td></tr>';
-    }
-}
-
-// 에러 메시지 표시
-function displayErrorMessage(message) {
-    var tbody = document.getElementById('membersTableBody');
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
-            '<div class="error-members">' +
-                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px; color: #f44336;">error</span>' +
-                '<p>' + message + '</p>' +
-                '<button class="btn btn-secondary" onclick="loadMembersData()">다시 시도</button>' +
-            '</div>' +
-        '</td></tr>';
-    }
-}
-
-// 검색 및 필터링 함수들
-function searchMembers(keyword) {
-    var rows = document.querySelectorAll('.member-row');
-    var lowerKeyword = keyword.toLowerCase();
-    
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var nickname = row.querySelector('.member-nickname').textContent.toLowerCase();
-        
-        if (nickname.includes(lowerKeyword)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    }
-}
-
-function filterMembers(status) {
-    var rows = document.querySelectorAll('.member-row');
-    
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var memberStatus = row.getAttribute('data-status');
-        
-        if (status === 'all' || memberStatus === status) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    }
-}
-
-function filterMembersByJob(job) {
-    var rows = document.querySelectorAll('.member-row');
-    
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var memberJob = row.getAttribute('data-job');
-        
-        if (job === 'all' || memberJob === job) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    }
-}
-
-// 정렬 함수
-function sortMembers(sortBy) {
-    // 현재 표시된 데이터를 다시 정렬해서 표시
-    loadMembersData(); // 간단하게 데이터를 다시 로드
-}
-
-// 기타 함수들
-function exportMembersList() {
-    alert('길드원 목록 내보내기 기능은 준비 중입니다.');
-}
-
-function refreshMembersList() {
-    loadMembersData();
-}
-
-function showMemberDetail(nickname) {
-    alert('회원 상세 정보: ' + nickname + '\n(상세 기능은 준비 중입니다)');
-}
-
-function drawParticipationChart(members) {
-    // 간단한 참여율 차트 그리기
-    var canvas = document.getElementById('participationChart');
-    if (canvas) {
-        var ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#E0E0E0';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#00BCD4';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('참여율 차트 (준비 중)', canvas.width/2, canvas.height/2);
     }
 }
 
