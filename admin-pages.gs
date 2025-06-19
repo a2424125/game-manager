@@ -1,7 +1,7 @@
 // ===== 관리자 페이지 HTML 생성 함수 =====
 
 // 관리자 메인 페이지
-function getAdminHTML() {
+function getAdminPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">관리자 설정</h1>
@@ -97,6 +97,14 @@ function getAdminDashboardTab() {
             <button class="quick-action-btn" onclick="initializeAllSheets()">
               <span class="material-icons">settings_backup_restore</span>
               <span>시트 초기화</span>
+            </button>
+            <button class="quick-action-btn" onclick="setupCompleteTestEnvironment()">
+              <span class="material-icons">psychology</span>
+              <span>테스트 환경 설정</span>
+            </button>
+            <button class="quick-action-btn" onclick="validateMemberData()">
+              <span class="material-icons">search</span>
+              <span>시스템 진단</span>
             </button>
           </div>
         </div>
@@ -355,12 +363,12 @@ function getAdminSettingsTab() {
           </div>
           
           <div class="settings-section">
-            <h4>유지보수</h4>
+            <h4>시스템 관리</h4>
             
             <div class="setting-item">
-              <label>데이터 정리</label>
-              <button class="btn btn-secondary" onclick="cleanupOldData()">
-                90일 이상 데이터 정리
+              <label>회원 데이터 검증</label>
+              <button class="btn btn-secondary" onclick="validateMemberData()">
+                데이터 검증 실행
               </button>
             </div>
             
@@ -368,6 +376,13 @@ function getAdminSettingsTab() {
               <label>캐시 초기화</label>
               <button class="btn btn-secondary" onclick="clearCache()">
                 캐시 지우기
+              </button>
+            </div>
+            
+            <div class="setting-item">
+              <label>테스트 환경 설정</label>
+              <button class="btn btn-secondary" onclick="setupCompleteTestEnvironment()">
+                완전한 테스트 환경 구성
               </button>
             </div>
             
@@ -464,7 +479,7 @@ function getAdminModals() {
   `;
 }
 
-// ===== 권한별 회원 조회 함수 - 수정된 버전 =====
+// ===== 수정된 권한별 회원 조회 함수 =====
 function getMembersByRole() {
   console.log('권한별 회원 조회 시작');
   
@@ -529,7 +544,7 @@ function getMembersByRole() {
   }
 }
 
-// ===== 회원 권한 업데이트 - 수정된 버전 =====
+// ===== 회원 권한 업데이트 =====
 function updateMemberPermission(memberId, permissionLevel) {
   console.log('회원 권한 업데이트:', memberId, permissionLevel);
   
@@ -564,7 +579,7 @@ function updateMemberPermission(memberId, permissionLevel) {
   }
 }
 
-// ===== 일괄 작업 함수 - 수정된 버전 =====
+// ===== 일괄 작업 함수 =====
 function executeBulkMemberAction(memberIds, action) {
   console.log('일괄 작업 실행:', memberIds, action);
   
@@ -635,7 +650,7 @@ function getLastActivityDate(nickname) {
   }
 }
 
-// ===== 비활성 회원 처리 함수 - 수정된 버전 =====
+// ===== 비활성 회원 처리 함수 =====
 function batchUpdateMemberStatus() {
   console.log('비활성 회원 처리 시작');
   
@@ -671,5 +686,148 @@ function batchUpdateMemberStatus() {
   } catch (error) {
     console.error('비활성 회원 처리 오류:', error);
     return { success: false, message: '비활성 회원 처리 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+// ===== 테스트 환경 완전 설정 함수 =====
+function setupCompleteTestEnvironment() {
+  console.log('완전한 테스트 환경 설정 시작');
+  
+  try {
+    // 1. 시트 초기화
+    const initResult = initializeAllSheets();
+    if (!initResult.success) {
+      return initResult;
+    }
+    
+    // 2. 테스트 데이터 생성
+    const testResult = createTestData();
+    if (!testResult.success) {
+      return testResult;
+    }
+    
+    return {
+      success: true,
+      message: '완전한 테스트 환경 설정 완료!\n\n' + 
+               '✅ 시스템 초기화 완료\n' +
+               '✅ 테스트 데이터 생성 완료\n\n' +
+               '🔑 관리자 계정:\n• 닉네임: 관리자\n• 비밀번호: admin123\n\n' +
+               '🔑 테스트 회원 계정들:\n• 닉네임: 길드페이드 (고참여자)\n• 닉네임: 아워로드 (고참여자)\n• 비밀번호: test123 (모든 테스트 계정 공통)\n\n' +
+               '📊 생성된 데이터:\n• 회원 9명 (관리자 포함)\n• 보스 참여 기록 다수\n• 길드 자금 거래 내역\n• 샘플 보스 목록\n\n' +
+               '🚀 이제 모든 기능을 테스트할 수 있습니다!\n길드원 목록에서 실제 데이터를 확인해보세요.'
+    };
+    
+  } catch (error) {
+    console.error('테스트 환경 설정 오류:', error);
+    return {
+      success: false,
+      message: '테스트 환경 설정 중 오류가 발생했습니다: ' + error.message
+    };
+  }
+}
+
+// ===== 테스트 데이터 생성 함수 =====
+function createTestData() {
+  console.log('테스트 데이터 생성 시작');
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // 1. 테스트 회원 데이터 추가
+    const memberSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+    if (memberSheet) {
+      const testMembers = [
+        ['M0002', '길드페이드', '바람의언덕', '루페온', '바드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0003', '아워로드', '바람의언덕', '루페온', '워로드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0004', '박건슬링어', '바람의언덕', '루페온', '건슬링어', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0005', '김버서커', '바람의언덕', '루페온', '버서커', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0006', '이소서리스', '바람의언덕', '루페온', '소서리스', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0007', '최인파이터', '바람의언덕', '루페온', '인파이터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0008', '정데빌헌터', '바람의언덕', '루페온', '데빌헌터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0009', '강아르카나', '바람의언덕', '루페온', '아르카나', hashPassword('test123'), new Date(), '활성', 'N']
+      ];
+      
+      // 기존 데이터 확인 후 추가
+      const existingData = memberSheet.getDataRange().getValues();
+      const existingNicknames = existingData.map(row => row[1]).filter(n => n);
+      
+      for (let i = 0; i < testMembers.length; i++) {
+        if (!existingNicknames.includes(testMembers[i][1])) {
+          memberSheet.appendRow(testMembers[i]);
+        }
+      }
+    }
+    
+    // 2. 테스트 보스 참여 기록 추가
+    const bossSheet = ss.getSheetByName(SHEET_NAMES.BOSS_RECORDS);
+    if (bossSheet) {
+      const testRecords = [];
+      const members = ['길드페이드', '아워로드', '박건슬링어', '김버서커', '이소서리스', '최인파이터', '정데빌헌터', '강아르카나'];
+      const bosses = ['발탄', '비아키스', '쿠크세이튼', '아브렐슈드', '일리아칸', '카양겔', '상아탑'];
+      const items = ['마수의 뼈', '광기의 돌', '파멸의 돌', '질서의 돌', '카오스 돌', '신비한 보석', '영혼의 결정'];
+      
+      let recordId = bossSheet.getLastRow(); // 기존 데이터 고려
+      
+      // 최근 2주간의 데이터 생성
+      for (let day = 14; day >= 0; day--) {
+        const date = new Date();
+        date.setDate(date.getDate() - day);
+        const weekNum = Math.ceil((date.getDate()) / 7);
+        
+        // 하루에 2-4개의 보스 레이드
+        const dailyRaids = Math.floor(Math.random() * 3) + 2;
+        
+        for (let raid = 0; raid < dailyRaids; raid++) {
+          const boss = bosses[Math.floor(Math.random() * bosses.length)];
+          const item = items[Math.floor(Math.random() * items.length)];
+          const participantCount = Math.floor(Math.random() * 4) + 4; // 4-8명 참여
+          
+          // 길드페이드와 아워로드는 더 자주 참여하도록 가중치 적용
+          const shuffledMembers = [...members].sort(() => 0.5 - Math.random());
+          if (Math.random() > 0.3) {
+            if (!shuffledMembers.includes('길드페이드')) shuffledMembers.unshift('길드페이드');
+          }
+          if (Math.random() > 0.4) {
+            if (!shuffledMembers.includes('아워로드')) shuffledMembers.unshift('아워로드');
+          }
+          
+          const participants = shuffledMembers.slice(0, participantCount);
+          
+          // 각 참여자별로 기록 추가
+          for (let p = 0; p < participants.length; p++) {
+            const id = 'BR' + String(recordId).padStart(5, '0');
+            const salePrice = Math.random() > 0.5 ? Math.floor(Math.random() * 8000000) + 500000 : 0;
+            const soldStatus = salePrice > 0 ? '판매완료' : '미판매';
+            const commission = salePrice * 0.08;
+            const netAmount = salePrice - commission;
+            
+            testRecords.push([
+              id, date, boss, participants[p], item, 1, 
+              soldStatus, salePrice, commission, netAmount, weekNum
+            ]);
+            recordId++;
+          }
+        }
+      }
+      
+      // 배치로 기록 추가
+      if (testRecords.length > 0) {
+        const range = bossSheet.getRange(bossSheet.getLastRow() + 1, 1, testRecords.length, testRecords[0].length);
+        range.setValues(testRecords);
+      }
+    }
+    
+    console.log('테스트 데이터 생성 완료');
+    return { 
+      success: true, 
+      message: '테스트 데이터 생성 완료!'
+    };
+    
+  } catch (error) {
+    console.error('테스트 데이터 생성 오류:', error);
+    return { 
+      success: false, 
+      message: '테스트 데이터 생성 중 오류가 발생했습니다: ' + error.message 
+    };
   }
 }
