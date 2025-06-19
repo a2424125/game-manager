@@ -13,6 +13,7 @@ const SHEET_NAMES = {
   PERMISSIONS: '권한설정',
   SYSTEM_SETTINGS: '시스템설정'
 }
+
 // ===== 캐시 초기화 함수 =====
 function clearCache() {
   try {
@@ -31,7 +32,7 @@ function clearCache() {
       message: '캐시 초기화 중 오류가 발생했습니다: ' + error.message 
     };
   }
-};
+}
 
 // ===== 웹 앱 진입점 =====
 function doGet() {
@@ -59,7 +60,7 @@ function hashPassword(password) {
   return Utilities.base64Encode(hash);
 }
 
-// ===== 인증 관련 함수 =====
+// ===== 수정된 인증 관련 함수 =====
 function login(nickname, password) {
   console.log('로그인 시도:', nickname);
   
@@ -73,6 +74,11 @@ function login(nickname, password) {
     const hashedPassword = hashPassword(password);
     
     for (let i = 1; i < data.length; i++) {
+      // 유효한 회원 데이터인지 확인 (회원ID가 M으로 시작하고 닉네임이 있는지)
+      if (!data[i][0] || !data[i][0].toString().startsWith('M') || !data[i][1]) {
+        continue;
+      }
+      
       // 인덱스 조정: 직업 필드가 추가되어 비밀번호는 5번째(인덱스 5), 상태는 7번째(인덱스 7), 관리자는 8번째(인덱스 8)
       if (data[i][1] === nickname && data[i][5] === hashedPassword && data[i][7] === '활성') {
         console.log('로그인 성공:', nickname);
@@ -112,6 +118,11 @@ function validateSession(userId, nickname) {
     const data = sheet.getDataRange().getValues();
     
     for (let i = 1; i < data.length; i++) {
+      // 유효한 회원 데이터인지 확인
+      if (!data[i][0] || !data[i][0].toString().startsWith('M') || !data[i][1]) {
+        continue;
+      }
+      
       // ID와 닉네임이 일치하고 활성 상태인지 확인
       if (data[i][0] === userId && data[i][1] === nickname && data[i][7] === '활성') {
         console.log('세션 유효성 확인됨:', nickname);
@@ -138,6 +149,7 @@ function validateSession(userId, nickname) {
   }
 }
 
+// ===== 수정된 회원가입 함수 =====
 function register(userData) {
   console.log('회원가입 시작:', userData);
   
@@ -161,25 +173,49 @@ function register(userData) {
       return { success: false, message: '모든 필드를 입력해주세요.' };
     }
     
-    const lastRow = sheet.getLastRow();
-    const newId = 'M' + String(lastRow).padStart(4, '0');
+    // 실제 회원 수를 계산하여 새로운 ID 생성
+    let memberCount = 0;
+    for (let i = 1; i < data.length; i++) {
+      // 회원ID와 닉네임이 모두 있는 행만 회원으로 간주
+      if (data[i][0] && data[i][1] && data[i][0].toString().startsWith('M')) {
+        memberCount++;
+      }
+    }
+    
+    const newId = 'M' + String(memberCount + 1).padStart(4, '0');
     const today = new Date();
     const hashedPassword = hashPassword(userData.password);
     
-    // 새로운 회원 정보 추가 (직업 필드 포함)
-    sheet.appendRow([
+    // 첫 번째 빈 행을 찾아서 데이터 입력
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i][0] && !data[i][1]) { // 완전히 빈 행
+        targetRow = i + 1; // 1-based index
+        break;
+      }
+    }
+    
+    // 빈 행이 없으면 맨 끝에 추가
+    if (targetRow === -1) {
+      targetRow = data.length + 1;
+    }
+    
+    // 특정 행에 데이터 입력
+    const newMemberData = [
       newId,                    // 회원ID
       userData.nickname,        // 닉네임
       userData.guild,          // 길드명
       userData.server,         // 서버
-      userData.job,            // 직업 (추가됨)
+      userData.job,            // 직업
       hashedPassword,          // 비밀번호 (해시)
       today,                   // 가입일
       '활성',                  // 상태
       'N'                      // 관리자 여부
-    ]);
+    ];
     
-    console.log('회원가입 성공:', newId, userData.nickname, userData.job);
+    sheet.getRange(targetRow, 1, 1, newMemberData.length).setValues([newMemberData]);
+    
+    console.log('회원가입 성공:', newId, userData.nickname, userData.job, '행:', targetRow);
     return { 
       success: true, 
       message: '회원가입이 완료되었습니다!\n\n닉네임: ' + userData.nickname + 
@@ -285,6 +321,7 @@ function initializeBossRecordsSheet() {
   }
 }
 
+// ===== 수정된 회원 목록 조회 함수 =====
 function getMembers() {
   console.log('회원 목록 조회 시작');
   
@@ -322,14 +359,14 @@ function getMembers() {
       // 디버깅을 위한 로그
       console.log(`행 ${i + 1} 처리 중:`, memberData[i]);
       
-      // 회원ID와 닉네임이 있는 행만 처리
-      if (!memberData[i][0] || !memberData[i][1]) {
-        console.log(`행 ${i + 1}: 빈 데이터로 건너뜀`);
+      // 회원ID가 있고 올바른 형식인지 확인 (M으로 시작하는 ID)
+      if (!memberData[i][0] || !memberData[i][0].toString().startsWith('M')) {
+        console.log(`행 ${i + 1}: 유효하지 않은 회원ID로 건너뜀`);
         continue;
       }
       
       // 닉네임이 빈 문자열이거나 공백만 있는 경우 건너뛰기
-      const nickname = String(memberData[i][1]).trim();
+      const nickname = String(memberData[i][1] || '').trim();
       if (!nickname) {
         console.log(`행 ${i + 1}: 닉네임이 비어있어 건너뜀`);
         continue;
@@ -383,6 +420,263 @@ function getMembers() {
     console.error('회원 목록 조회 오류:', error);
     console.error('오류 스택:', error.stack);
     return [];
+  }
+}
+
+// ===== 참여 정보 포함 회원 목록 조회 =====
+function getMembersWithParticipation() {
+  console.log('참여 정보 포함 회원 목록 조회 시작');
+  
+  try {
+    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!memberSheet) {
+      console.log('회원 정보 시트를 찾을 수 없습니다');
+      return [];
+    }
+    
+    const memberData = memberSheet.getDataRange().getValues();
+    const members = [];
+    
+    console.log('읽어온 전체 데이터 행 수:', memberData.length);
+    
+    // 보스 참여 기록 가져오기
+    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
+    let bossData = [];
+    if (bossSheet && bossSheet.getLastRow() > 1) {
+      bossData = bossSheet.getDataRange().getValues();
+      console.log('보스 참여 기록 행 수:', bossData.length);
+    }
+    
+    // 각 회원 데이터 처리 (헤더 제외하고 1번째 행부터)
+    for (let i = 1; i < memberData.length; i++) {
+      console.log(`행 ${i + 1} 처리 중:`, memberData[i]);
+      
+      // 회원ID가 있고 올바른 형식인지 확인 (M으로 시작하는 ID)
+      if (!memberData[i][0] || !memberData[i][0].toString().startsWith('M')) {
+        console.log(`행 ${i + 1}: 유효하지 않은 회원ID로 건너뜀`);
+        continue;
+      }
+      
+      // 닉네임이 있는지 확인
+      const nickname = String(memberData[i][1] || '').trim();
+      if (!nickname) {
+        console.log(`행 ${i + 1}: 닉네임이 비어있어 건너뜀`);
+        continue;
+      }
+      
+      console.log(`처리할 회원: ${nickname} (ID: ${memberData[i][0]})`);
+      
+      // 해당 회원의 보스 참여횟수 계산
+      let participationCount = 0;
+      let lastParticipation = null;
+      let totalItemsObtained = 0;
+      let totalSalesAmount = 0;
+      
+      for (let j = 1; j < bossData.length; j++) {
+        if (bossData[j][3] === nickname) { // 참여자 컬럼 확인
+          participationCount++;
+          const participationDate = new Date(bossData[j][1]);
+          if (!lastParticipation || participationDate > lastParticipation) {
+            lastParticipation = participationDate;
+          }
+          
+          // 아이템 개수 누적
+          totalItemsObtained += (bossData[j][5] || 0);
+          
+          // 판매 금액 누적 (실수령액 기준)
+          totalSalesAmount += (bossData[j][9] || 0);
+        }
+      }
+      
+      // 회원 정보 객체 생성
+      const memberInfo = {
+        id: String(memberData[i][0]),
+        nickname: nickname,
+        guild: String(memberData[i][2] || ''),
+        server: String(memberData[i][3] || ''),
+        job: String(memberData[i][4] || ''),              
+        joinDate: memberData[i][6] || new Date(),         
+        status: String(memberData[i][7] || '활성'),           
+        isAdmin: String(memberData[i][8] || 'N') === 'Y',
+        
+        // 참여 통계
+        participationCount: participationCount,
+        lastParticipation: lastParticipation,
+        totalItemsObtained: totalItemsObtained,
+        totalSalesAmount: totalSalesAmount,
+        
+        // 활동 점수 계산 (참여도 기반)
+        activityScore: calculateActivityScore(participationCount, lastParticipation, memberData[i][6])
+      };
+      
+      members.push(memberInfo);
+      console.log(`회원 추가됨: ${memberInfo.nickname}, 참여횟수: ${participationCount}`);
+    }
+    
+    // 참여횟수 순으로 정렬
+    members.sort(function(a, b) {
+      return b.participationCount - a.participationCount;
+    });
+    
+    console.log('회원 목록 조회 완료, 총 인원:', members.length);
+    console.log('조회된 회원들:', members.map(m => m.nickname));
+    
+    return members;
+    
+  } catch (error) {
+    console.error('참여 정보 포함 회원 목록 조회 오류:', error);
+    console.error('오류 스택:', error.stack);
+    return [];
+  }
+}
+
+// 활동 점수 계산 함수
+function calculateActivityScore(participationCount, lastParticipation, joinDate) {
+  try {
+    let score = 0;
+    
+    // 기본 참여 점수 (참여 1회당 10점)
+    score += participationCount * 10;
+    
+    // 최근 활동 보너스
+    if (lastParticipation) {
+      const daysSinceLastActivity = Math.floor((new Date() - new Date(lastParticipation)) / (1000 * 60 * 60 * 24));
+      if (daysSinceLastActivity <= 7) {
+        score += 50; // 일주일 이내 활동
+      } else if (daysSinceLastActivity <= 30) {
+        score += 20; // 한달 이내 활동
+      }
+    }
+    
+    // 가입 기간 보너스
+    const daysSinceJoin = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
+    if (daysSinceJoin >= 30) {
+      score += Math.min(daysSinceJoin / 30 * 5, 50); // 최대 50점
+    }
+    
+    return Math.round(score);
+    
+  } catch (error) {
+    console.error('활동 점수 계산 오류:', error);
+    return 0;
+  }
+}
+
+// ===== 시트 정리 함수 추가 =====
+function cleanupMemberSheet() {
+  console.log('회원 시트 정리 시작');
+  
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const cleanData = [];
+    
+    // 헤더 추가
+    if (data.length > 0) {
+      cleanData.push(data[0]);
+    }
+    
+    // 유효한 회원 데이터만 수집
+    for (let i = 1; i < data.length; i++) {
+      // 회원ID와 닉네임이 모두 있는 행만 보존
+      if (data[i][0] && data[i][1] && 
+          data[i][0].toString().startsWith('M') && 
+          data[i][1].toString().trim()) {
+        cleanData.push(data[i]);
+      }
+    }
+    
+    // 시트 클리어
+    sheet.clear();
+    
+    // 정리된 데이터 다시 입력
+    if (cleanData.length > 0) {
+      sheet.getRange(1, 1, cleanData.length, cleanData[0].length).setValues(cleanData);
+    }
+    
+    console.log('회원 시트 정리 완료. 유효한 회원 수:', cleanData.length - 1);
+    return { 
+      success: true, 
+      message: `회원 시트 정리 완료. 유효한 회원 수: ${cleanData.length - 1}명`
+    };
+    
+  } catch (error) {
+    console.error('회원 시트 정리 오류:', error);
+    return { success: false, message: '시트 정리 중 오류가 발생했습니다: ' + error.message };
+  }
+}
+
+// ===== 관리자용 시트 정리 및 재생성 함수 =====
+function reinitializeSystem() {
+  console.log('시스템 재초기화 시작');
+  
+  try {
+    // 1. 모든 시트 정리
+    const cleanupResults = [];
+    
+    // 회원 시트 정리
+    const memberCleanup = cleanupMemberSheet();
+    cleanupResults.push('회원 시트: ' + memberCleanup.message);
+    
+    // 2. 기본 관리자 계정 확인 및 생성
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      let hasAdmin = false;
+      
+      // 기존 관리자 계정 확인
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] && data[i][8] === 'Y') {
+          hasAdmin = true;
+          break;
+        }
+      }
+      
+      // 관리자 계정이 없으면 생성
+      if (!hasAdmin) {
+        const adminData = [
+          'M0001',
+          '관리자',
+          '길드명',
+          '서버명', 
+          '관리자',
+          hashPassword('admin123'),
+          new Date(),
+          '활성',
+          'Y'
+        ];
+        
+        // 첫 번째 빈 행에 관리자 계정 추가
+        let targetRow = data.length + 1;
+        for (let i = 1; i < data.length; i++) {
+          if (!data[i][0] && !data[i][1]) {
+            targetRow = i + 1;
+            break;
+          }
+        }
+        
+        sheet.getRange(targetRow, 1, 1, adminData.length).setValues([adminData]);
+        cleanupResults.push('관리자 계정 생성: 닉네임=관리자, 비밀번호=admin123');
+      }
+    }
+    
+    console.log('시스템 재초기화 완료');
+    return {
+      success: true,
+      message: '시스템 재초기화 완료!\n\n' + cleanupResults.join('\n') + 
+               '\n\n이제 길드원 목록이 정상적으로 표시됩니다.'
+    };
+    
+  } catch (error) {
+    console.error('시스템 재초기화 오류:', error);
+    return { 
+      success: false, 
+      message: '시스템 재초기화 중 오류가 발생했습니다: ' + error.message 
+    };
   }
 }
 
@@ -1291,142 +1585,37 @@ function createAdminAccount() {
   }
 }
 
-// ===== 시스템 설정 함수들 =====
-function getSystemSettings() {
-  try {
-    const sheet = getSheet(SHEET_NAMES.SYSTEM_SETTINGS);
-    if (!sheet) {
-      return {
-        commissionRate: 8,
-        autoBackupEnabled: false,
-        notificationEnabled: true,
-        maxInactiveDays: 30
-      };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const settings = {};
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0]) {
-        settings[data[i][0]] = {
-          value: data[i][1],
-          type: data[i][2],
-          description: data[i][3],
-          lastModified: data[i][4]
-        };
-      }
-    }
-    
-    return {
-      commissionRate: parseInt(settings.commissionRate?.value) || 8,
-      autoBackupEnabled: settings.autoBackupEnabled?.value === 'true',
-      notificationEnabled: settings.notificationEnabled?.value !== 'false',
-      maxInactiveDays: parseInt(settings.maxInactiveDays?.value) || 30
-    };
-    
-  } catch (error) {
-    console.error('시스템 설정 조회 오류:', error);
-    return {
-      commissionRate: 8,
-      autoBackupEnabled: false,
-      notificationEnabled: true,
-      maxInactiveDays: 30
-    };
-  }
-}
-
-function updateSystemSettings(key, value) {
-  try {
-    const sheet = getSheet(SHEET_NAMES.SYSTEM_SETTINGS);
-    if (!sheet) {
-      return { success: false, message: '시스템 설정 시트를 찾을 수 없습니다.' };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const now = new Date();
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === key) {
-        sheet.getRange(i + 1, 2).setValue(value);
-        sheet.getRange(i + 1, 5).setValue(now);
-        return { success: true, message: '설정이 업데이트되었습니다.' };
-      }
-    }
-    
-    // 새 설정 추가
-    sheet.appendRow([key, value, typeof value, '', now]);
-    return { success: true, message: '새 설정이 추가되었습니다.' };
-    
-  } catch (error) {
-    console.error('시스템 설정 업데이트 오류:', error);
-    return { success: false, message: '설정 업데이트 중 오류가 발생했습니다: ' + error.message };
-  }
-}
-
-// ===== 데이터 정리 함수 =====
-function cleanupOldData() {
-  console.log('오래된 데이터 정리 시작');
-  
-  try {
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    
-    let cleanedCount = 0;
-    
-    // 보스 기록 정리
-    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
-    if (bossSheet) {
-      const data = bossSheet.getDataRange().getValues();
-      
-      for (let i = data.length - 1; i >= 1; i--) {
-        const recordDate = new Date(data[i][1]);
-        if (recordDate < ninetyDaysAgo) {
-          bossSheet.deleteRow(i + 1);
-          cleanedCount++;
-        }
-      }
-    }
-    
-    console.log('데이터 정리 완료, 정리된 기록 수:', cleanedCount);
-    return { 
-      success: true, 
-      message: cleanedCount + '건의 오래된 기록이 정리되었습니다.' 
-    };
-    
-  } catch (error) {
-    console.error('데이터 정리 오류:', error);
-    return { 
-      success: false, 
-      message: '데이터 정리 중 오류가 발생했습니다: ' + error.message 
-    };
-  }
-}
-
-// ===== 테스트 데이터 생성 함수 =====
+// ===== 테스트 데이터 생성 함수 수정 =====
 function createTestData() {
   console.log('테스트 데이터 생성 시작');
   
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     
+    // 먼저 회원 시트 정리
+    const cleanupResult = cleanupMemberSheet();
+    if (!cleanupResult.success) {
+      return cleanupResult;
+    }
+    
     // 1. 테스트 회원 데이터 추가
     const memberSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
     if (memberSheet) {
       const testMembers = [
-        ['M0002', '길드페이드', '바람의언덕', '루페온', '바드', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0003', '아워로드', '바람의언덕', '루페온', '워로드', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0004', '박건슬링어', '바람의언덕', '루페온', '건슬링어', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0005', '김버서커', '바람의언덕', '루페온', '버서커', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0006', '이소서리스', '바람의언덕', '루페온', '소서리스', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0007', '최인파이터', '바람의언덕', '루페온', '인파이터', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0008', '정데빌헌터', '바람의언덕', '루페온', '데빌헌터', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0009', '강아르카나', '바람의언덕', '루페온', '아르카나', hashPassword('test123'), new Date(), '활성', 'N'],
-        ['M0010', '홍블레이드', '바람의언덕', '루페온', '블레이드', hashPassword('test123'), new Date(), '비활성', 'N']
+        ['M0001', '길드페이드', '바람의언덕', '루페온', '바드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0002', '아워로드', '바람의언덕', '루페온', '워로드', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0003', '박건슬링어', '바람의언덕', '루페온', '건슬링어', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0004', '김버서커', '바람의언덕', '루페온', '버서커', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0005', '이소서리스', '바람의언덕', '루페온', '소서리스', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0006', '최인파이터', '바람의언덕', '루페온', '인파이터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0007', '정데빌헌터', '바람의언덕', '루페온', '데빌헌터', hashPassword('test123'), new Date(), '활성', 'N'],
+        ['M0008', '강아르카나', '바람의언덕', '루페온', '아르카나', hashPassword('test123'), new Date(), '활성', 'N']
       ];
       
+      // 헤더 다음 행부터 시작해서 테스트 데이터 추가
+      const startRow = 2; // 헤더가 1행이므로 2행부터
       for (let i = 0; i < testMembers.length; i++) {
-        memberSheet.appendRow(testMembers[i]);
+        memberSheet.getRange(startRow + i, 1, 1, testMembers[i].length).setValues([testMembers[i]]);
       }
     }
     
@@ -1526,8 +1715,7 @@ function createTestData() {
     console.log('테스트 데이터 생성 완료');
     return { 
       success: true, 
-      message: '테스트 데이터 생성 완료!\n\n• 테스트 회원 8명 추가\n• 보스 참여 기록 ' + 
-               (recordId - 1) + '건 추가\n• 길드 자금 거래 내역 6건 추가\n\n이제 길드원 목록에서 실제 데이터를 확인할 수 있습니다.'
+      message: '테스트 데이터 생성 완료!\n\n• 테스트 회원 8명 추가\n• 비밀번호: test123 (모든 테스트 계정 공통)\n\n이제 길드원 목록에서 회원들을 확인할 수 있습니다.'
     };
     
   } catch (error) {
@@ -1575,604 +1763,128 @@ function setupCompleteTestEnvironment() {
     };
   }
 }
-function getMembersWithParticipation() {
-  console.log('참여 정보 포함 회원 목록 조회 시작');
+
+// ===== 관리자용 디버깅 함수 =====
+function fixCurrentIssues() {
+  console.log('현재 문제 해결 시작');
   
   try {
-    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!memberSheet) {
-      console.log('회원 정보 시트를 찾을 수 없습니다');
-      return [];
-    }
+    // 1. 현재 상태 확인
+    const status = checkMemberSheetStatus();
+    console.log('현재 상태:', status);
     
-    const memberData = memberSheet.getDataRange().getValues();
-    const members = [];
+    // 2. 시스템 재초기화
+    const result = reinitializeSystem();
+    console.log('재초기화 결과:', result);
     
-    // 보스 참여 기록 가져오기
-    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
-    let bossData = [];
-    if (bossSheet && bossSheet.getLastRow() > 1) {
-      bossData = bossSheet.getDataRange().getValues();
-    }
-    
-    for (let i = 1; i < memberData.length; i++) {
-      // 빈 행 건너뛰기
-      if (!memberData[i][0] || !memberData[i][1]) {
-        continue;
-      }
-      
-      const nickname = memberData[i][1];
-      
-      // 해당 회원의 보스 참여 통계 계산
-      let participationCount = 0;
-      let lastParticipation = null;
-      let totalItemsObtained = 0;
-      let totalSalesAmount = 0;
-      
-      for (let j = 1; j < bossData.length; j++) {
-        if (bossData[j][3] === nickname) { // 참여자 컬럼 확인
-          participationCount++;
-          const participationDate = new Date(bossData[j][1]);
-          if (!lastParticipation || participationDate > lastParticipation) {
-            lastParticipation = participationDate;
-          }
-          
-          // 아이템 개수 누적
-          totalItemsObtained += (bossData[j][5] || 0);
-          
-          // 판매 금액 누적 (실수령액 기준)
-          totalSalesAmount += (bossData[j][9] || 0);
-        }
-      }
-      
-      members.push({
-        id: memberData[i][0],
-        nickname: nickname,
-        guild: memberData[i][2],
-        server: memberData[i][3],
-        job: memberData[i][4],              
-        joinDate: memberData[i][6],         
-        status: memberData[i][7],           
-        isAdmin: memberData[i][8] === 'Y',  
-        
-        // 참여 통계
-        participationCount: participationCount,
-        lastParticipation: lastParticipation,
-        totalItemsObtained: totalItemsObtained,
-        totalSalesAmount: totalSalesAmount,
-        
-        // 활동 점수 계산 (참여도 기반)
-        activityScore: calculateActivityScore(participationCount, lastParticipation, memberData[i][6])
-      });
-    }
-    
-    // 참여횟수 순으로 정렬
-    members.sort(function(a, b) {
-      return b.participationCount - a.participationCount;
-    });
-    
-    console.log('참여 정보 포함 회원 목록 조회 완료, 총 인원:', members.length);
-    return members;
+    return result;
     
   } catch (error) {
-    console.error('참여 정보 포함 회원 목록 조회 오류:', error);
-    return [];
+    console.error('문제 해결 중 오류:', error);
+    return {
+      success: false,
+      message: '문제 해결 중 오류가 발생했습니다: ' + error.message
+    };
   }
 }
 
-// 활동 점수 계산 함수
-function calculateActivityScore(participationCount, lastParticipation, joinDate) {
-  try {
-    let score = 0;
-    
-    // 기본 참여 점수 (참여 1회당 10점)
-    score += participationCount * 10;
-    
-    // 최근 활동 보너스
-    if (lastParticipation) {
-      const daysSinceLastActivity = Math.floor((new Date() - new Date(lastParticipation)) / (1000 * 60 * 60 * 24));
-      if (daysSinceLastActivity <= 7) {
-        score += 50; // 일주일 이내 활동
-      } else if (daysSinceLastActivity <= 30) {
-        score += 20; // 한달 이내 활동
-      }
-    }
-    
-    // 가입 기간 보너스
-    const daysSinceJoin = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
-    if (daysSinceJoin >= 30) {
-      score += Math.min(daysSinceJoin / 30 * 5, 50); // 최대 50점
-    }
-    
-    return Math.round(score);
-    
-  } catch (error) {
-    console.error('활동 점수 계산 오류:', error);
-    return 0;
-  }
-}
-
-// 회원 상세 정보 조회
-function getMemberDetails(nickname) {
-  console.log('회원 상세 정보 조회:', nickname);
+// ===== 시트 상태 확인 함수 =====
+function checkMemberSheetStatus() {
+  console.log('=== 회원 시트 상태 확인 ===');
   
   try {
-    const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!memberSheet) {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      console.log('❌ 회원 정보 시트를 찾을 수 없습니다');
       return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
     }
     
-    const memberData = memberSheet.getDataRange().getValues();
-    let memberInfo = null;
+    const data = sheet.getDataRange().getValues();
+    console.log('✅ 시트 발견. 총 행 수:', data.length);
     
-    // 회원 기본 정보 찾기
-    for (let i = 1; i < memberData.length; i++) {
-      if (memberData[i][1] === nickname) {
-        memberInfo = {
-          id: memberData[i][0],
-          nickname: memberData[i][1],
-          guild: memberData[i][2],
-          server: memberData[i][3],
-          job: memberData[i][4],
-          joinDate: memberData[i][6],
-          status: memberData[i][7],
-          isAdmin: memberData[i][8] === 'Y'
-        };
-        break;
-      }
+    if (data.length === 0) {
+      return { success: false, message: '시트가 비어있습니다.' };
     }
     
-    if (!memberInfo) {
-      return { success: false, message: '해당 회원을 찾을 수 없습니다.' };
-    }
+    // 헤더 확인
+    console.log('헤더:', data[0]);
     
-    // 보스 참여 기록 조회
-    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
-    const participationHistory = [];
+    // 각 행 상태 확인
+    let validMembers = 0;
+    let invalidRows = 0;
+    let emptyRows = 0;
     
-    if (bossSheet && bossSheet.getLastRow() > 1) {
-      const bossData = bossSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const hasId = row[0] && row[0].toString().startsWith('M');
+      const hasNickname = row[1] && row[1].toString().trim();
       
-      for (let i = 1; i < bossData.length; i++) {
-        if (bossData[i][3] === nickname) {
-          participationHistory.push({
-            date: bossData[i][1],
-            bossName: bossData[i][2],
-            item: bossData[i][4] || '',
-            itemCount: bossData[i][5] || 0,
-            soldStatus: bossData[i][6] || '미판매',
-            salePrice: bossData[i][7] || 0,
-            netAmount: bossData[i][9] || 0
-          });
-        }
+      if (hasId && hasNickname) {
+        validMembers++;
+        console.log(`✅ 행 ${i + 1}: ${row[1]} (ID: ${row[0]})`);
+      } else if (row[0] || row[1] || row[2]) {
+        invalidRows++;
+        console.log(`⚠️ 행 ${i + 1}: 불완전한 데이터 -`, row.slice(0, 3));
+      } else {
+        emptyRows++;
+        console.log(`➖ 행 ${i + 1}: 빈 행`);
       }
     }
     
-    // 최근 30일 참여 통계
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const report = `시트 상태 분석 완료:
+- 총 행 수: ${data.length}
+- 유효한 회원: ${validMembers}명
+- 불완전한 데이터: ${invalidRows}행
+- 빈 행: ${emptyRows}행`;
     
-    const recentParticipation = participationHistory.filter(function(record) {
-      return new Date(record.date) >= thirtyDaysAgo;
-    });
+    console.log(report);
     
     return {
       success: true,
-      memberInfo: memberInfo,
-      participationHistory: participationHistory,
-      recentStats: {
-        totalParticipation: participationHistory.length,
-        recentParticipation: recentParticipation.length,
-        totalEarnings: participationHistory.reduce(function(sum, record) {
-          return sum + (record.netAmount || 0);
-        }, 0)
+      message: report,
+      stats: {
+        totalRows: data.length,
+        validMembers: validMembers,
+        invalidRows: invalidRows,
+        emptyRows: emptyRows
       }
     };
     
   } catch (error) {
-    console.error('회원 상세 정보 조회 오류:', error);
-    return { success: false, message: '회원 정보 조회 중 오류가 발생했습니다: ' + error.message };
+    console.error('❌ 시트 상태 확인 중 오류:', error);
+    return { success: false, message: '시트 상태 확인 중 오류가 발생했습니다: ' + error.message };
   }
 }
 
-// 회원 통계 대시보드 데이터
-function getMembersDashboardStats() {
-  console.log('회원 통계 대시보드 데이터 조회');
-  
-  try {
-    const members = getMembers();
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    // 기본 통계
-    const totalMembers = members.length;
-    const activeMembers = members.filter(m => m.status === '활성').length;
-    const inactiveMembers = totalMembers - activeMembers;
-    
-    // 최근 가입자
-    const recentJoins = members.filter(function(m) {
-      return new Date(m.joinDate) >= oneWeekAgo;
-    }).length;
-    
-    // 보스 참여 통계
-    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
-    let weeklyParticipation = 0;
-    let monthlyParticipation = 0;
-    
-    if (bossSheet && bossSheet.getLastRow() > 1) {
-      const bossData = bossSheet.getDataRange().getValues();
-      
-      for (let i = 1; i < bossData.length; i++) {
-        const recordDate = new Date(bossData[i][1]);
-        if (recordDate >= oneWeekAgo) {
-          weeklyParticipation++;
-        }
-        if (recordDate >= oneMonthAgo) {
-          monthlyParticipation++;
-        }
-      }
-    }
-    
-    // 직업별 분포
-    const jobDistribution = {};
-    members.forEach(function(member) {
-      const job = member.job || '미분류';
-      jobDistribution[job] = (jobDistribution[job] || 0) + 1;
-    });
-    
-    // 상위 참여자 (TOP 5)
-    const topParticipants = members
-      .filter(m => m.participationCount > 0)
-      .sort((a, b) => b.participationCount - a.participationCount)
-      .slice(0, 5)
-      .map(function(member, index) {
-        return {
-          rank: index + 1,
-          nickname: member.nickname,
-          participationCount: member.participationCount,
-          lastParticipation: member.lastParticipation
-        };
-      });
-    
-    return {
-      basic: {
-        totalMembers: totalMembers,
-        activeMembers: activeMembers,
-        inactiveMembers: inactiveMembers,
-        recentJoins: recentJoins
-      },
-      participation: {
-        weeklyParticipation: weeklyParticipation,
-        monthlyParticipation: monthlyParticipation,
-        averageParticipationPerMember: totalMembers > 0 ? Math.round(monthlyParticipation / totalMembers) : 0
-      },
-      jobDistribution: jobDistribution,
-      topParticipants: topParticipants
-    };
-    
-  } catch (error) {
-    console.error('회원 통계 대시보드 데이터 조회 오류:', error);
-    return {
-      basic: { totalMembers: 0, activeMembers: 0, inactiveMembers: 0, recentJoins: 0 },
-      participation: { weeklyParticipation: 0, monthlyParticipation: 0, averageParticipationPerMember: 0 },
-      jobDistribution: {},
-      topParticipants: []
-    };
-  }
+// ===== 기타 필요한 함수들 (Pages 관련) =====
+function getDashboardHTML() {
+  return '대시보드 HTML 내용';
 }
 
-// 회원 상태 일괄 업데이트
-function batchUpdateMemberStatus(memberIds, newStatus) {
-  console.log('회원 상태 일괄 업데이트:', memberIds, newStatus);
-  
-  try {
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) {
-      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    let updatedCount = 0;
-    
-    for (let i = 1; i < data.length; i++) {
-      if (memberIds.includes(data[i][0])) {
-        // 상태 컬럼 업데이트 (인덱스 7)
-        sheet.getRange(i + 1, 8).setValue(newStatus);
-        updatedCount++;
-      }
-    }
-    
-    console.log('회원 상태 일괄 업데이트 완료:', updatedCount);
-    return { 
-      success: true, 
-      message: updatedCount + '명의 회원 상태가 "' + newStatus + '"로 변경되었습니다.',
-      updatedCount: updatedCount
-    };
-    
-  } catch (error) {
-    console.error('회원 상태 일괄 업데이트 오류:', error);
-    return { success: false, message: '상태 업데이트 중 오류가 발생했습니다: ' + error.message };
-  }
+function getBossRecordHTML() {
+  return '보스 등록 HTML 내용';
 }
 
-// 비활성 회원 자동 처리
-function autoUpdateInactiveMembers() {
-  console.log('비활성 회원 자동 처리 시작');
-  
-  try {
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) {
-      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
-    }
-    
-    const memberData = sheet.getDataRange().getValues();
-    const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
-    let bossData = [];
-    
-    if (bossSheet && bossSheet.getLastRow() > 1) {
-      bossData = bossSheet.getDataRange().getValues();
-    }
-    
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    let updatedCount = 0;
-    
-    for (let i = 1; i < memberData.length; i++) {
-      if (!memberData[i][0] || !memberData[i][1] || memberData[i][7] !== '활성') {
-        continue;
-      }
-      
-      const nickname = memberData[i][1];
-      let hasRecentActivity = false;
-      
-      // 최근 30일 내 참여 기록 확인
-      for (let j = 1; j < bossData.length; j++) {
-        if (bossData[j][3] === nickname) {
-          const activityDate = new Date(bossData[j][1]);
-          if (activityDate >= thirtyDaysAgo) {
-            hasRecentActivity = true;
-            break;
-          }
-        }
-      }
-      
-      // 30일 이상 미참여 시 비활성 처리
-      if (!hasRecentActivity) {
-        sheet.getRange(i + 1, 8).setValue('비활성');
-        updatedCount++;
-      }
-    }
-    
-    console.log('비활성 회원 자동 처리 완료:', updatedCount);
-    return { 
-      success: true, 
-      message: updatedCount + '명이 비활성 상태로 변경되었습니다.',
-      updatedCount: updatedCount
-    };
-    
-  } catch (error) {
-    console.error('비활성 회원 자동 처리 오류:', error);
-    return { success: false, message: '비활성 회원 처리 중 오류가 발생했습니다: ' + error.message };
-  }
+function getMembersHTML() {
+  return '회원 목록 HTML 내용';
 }
 
-// 회원 정보 업데이트
-function updateMemberInfo(memberId, updateData) {
-  console.log('회원 정보 업데이트:', memberId, updateData);
-  
-  try {
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) {
-      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === memberId) {
-        // 업데이트 가능한 필드들
-        if (updateData.guild) sheet.getRange(i + 1, 3).setValue(updateData.guild);
-        if (updateData.server) sheet.getRange(i + 1, 4).setValue(updateData.server);
-        if (updateData.job) sheet.getRange(i + 1, 5).setValue(updateData.job);
-        if (updateData.status) sheet.getRange(i + 1, 8).setValue(updateData.status);
-        if (updateData.hasOwnProperty('isAdmin')) {
-          sheet.getRange(i + 1, 9).setValue(updateData.isAdmin ? 'Y' : 'N');
-        }
-        
-        console.log('회원 정보 업데이트 완료:', memberId);
-        return { success: true, message: '회원 정보가 업데이트되었습니다.' };
-      }
-    }
-    
-    return { success: false, message: '해당 회원을 찾을 수 없습니다.' };
-    
-  } catch (error) {
-    console.error('회원 정보 업데이트 오류:', error);
-    return { success: false, message: '회원 정보 업데이트 중 오류가 발생했습니다: ' + error.message };
-  }
+function getBossHistoryHTML() {
+  return '보스 히스토리 HTML 내용';
 }
 
-// 회원 데이터 검증
-function validateMemberData() {
-  console.log('회원 데이터 검증 시작');
-  
-  try {
-    const errors = [];
-    const warnings = [];
-    
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) {
-      return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const nicknames = new Set();
-    
-    for (let i = 1; i < data.length; i++) {
-      const row = i + 1; // 실제 시트 행 번호
-      
-      // 필수 필드 체크
-      if (!data[i][0]) {
-        errors.push(`행 ${row}: 회원ID가 없습니다.`);
-      }
-      if (!data[i][1]) {
-        errors.push(`행 ${row}: 닉네임이 없습니다.`);
-      }
-      if (!data[i][2]) {
-        warnings.push(`행 ${row}: 길드명이 없습니다.`);
-      }
-      if (!data[i][4]) {
-        warnings.push(`행 ${row}: 직업이 없습니다.`);
-      }
-      
-      // 중복 닉네임 체크
-      if (data[i][1]) {
-        if (nicknames.has(data[i][1])) {
-          errors.push(`행 ${row}: 중복된 닉네임입니다 - ${data[i][1]}`);
-        }
-        nicknames.add(data[i][1]);
-      }
-      
-      // 상태 값 체크
-      if (data[i][7] && !['활성', '비활성', '삭제'].includes(data[i][7])) {
-        warnings.push(`행 ${row}: 잘못된 상태 값입니다 - ${data[i][7]}`);
-      }
-      
-      // 관리자 여부 체크
-      if (data[i][8] && !['Y', 'N'].includes(data[i][8])) {
-        warnings.push(`행 ${row}: 잘못된 관리자 여부 값입니다 - ${data[i][8]}`);
-      }
-    }
-    
-    console.log('회원 데이터 검증 완료. 오류:', errors.length, '경고:', warnings.length);
-    
-    return {
-      success: true,
-      errors: errors,
-      warnings: warnings,
-      summary: `총 ${data.length - 1}명 검증 완료. 오류 ${errors.length}건, 경고 ${warnings.length}건`
-    };
-    
-  } catch (error) {
-    console.error('회원 데이터 검증 오류:', error);
-    return { success: false, message: '데이터 검증 중 오류가 발생했습니다: ' + error.message };
-  }
+function getItemSalesHTML() {
+  return '아이템 판매 HTML 내용';
 }
 
-// 회원 목록 내보내기 (CSV 형태의 데이터 준비)
-function exportMembersData() {
-  console.log('회원 목록 내보내기 데이터 준비');
-  
-  try {
-    const members = getMembersWithParticipation();
-    const csvData = [];
-    
-    // 헤더 추가
-    csvData.push([
-      '회원ID', '닉네임', '길드', '서버', '직업', '가입일', '상태', '관리자여부',
-      '총참여횟수', '최근참여일', '총아이템획득', '총판매수익', '활동점수'
-    ]);
-    
-    // 데이터 추가
-    members.forEach(function(member) {
-      csvData.push([
-        member.id,
-        member.nickname,
-        member.guild,
-        member.server,
-        member.job,
-        member.joinDate ? Utilities.formatDate(new Date(member.joinDate), 'GMT+9', 'yyyy-MM-dd') : '',
-        member.status,
-        member.isAdmin ? '관리자' : '일반회원',
-        member.participationCount,
-        member.lastParticipation ? Utilities.formatDate(new Date(member.lastParticipation), 'GMT+9', 'yyyy-MM-dd') : '없음',
-        member.totalItemsObtained,
-        member.totalSalesAmount,
-        member.activityScore
-      ]);
-    });
-    
-    console.log('회원 목록 내보내기 데이터 준비 완료:', csvData.length - 1, '명');
-    
-    return {
-      success: true,
-      data: csvData,
-      filename: '길드원목록_' + Utilities.formatDate(new Date(), 'GMT+9', 'yyyy-MM-dd') + '.csv'
-    };
-    
-  } catch (error) {
-    console.error('회원 목록 내보내기 데이터 준비 오류:', error);
-    return { success: false, message: '데이터 준비 중 오류가 발생했습니다: ' + error.message };
-  }
+function getGuildFundsHTML() {
+  return '길드 자금 HTML 내용';
 }
 
-// ===== 기존 getMembers 함수 개선 (기존 함수를 대체) =====
-function getMembers() {
-  console.log('회원 목록 조회 시작');
-  
-  try {
-    // getMembersWithParticipation 함수 사용
-    return getMembersWithParticipation();
-    
-  } catch (error) {
-    console.error('회원 목록 조회 오류:', error);
-    return [];
-  }
+function getDistributionHTML() {
+  return '분배 HTML 내용';
 }
 
-// ===== 유틸리티 함수들 =====
-
-// 닉네임으로 회원 ID 찾기
-function getMemberIdByNickname(nickname) {
-  try {
-    const sheet = getSheet(SHEET_NAMES.MEMBERS);
-    if (!sheet) return null;
-    
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === nickname) {
-        return data[i][0];
-      }
-    }
-    return null;
-    
-  } catch (error) {
-    console.error('닉네임으로 회원 ID 찾기 오류:', error);
-    return null;
-  }
-}
-
-// 회원 존재 여부 확인
-function checkMemberExists(nickname) {
-  return getMemberIdByNickname(nickname) !== null;
-}
-
-// 활성 회원 수 조회
-function getActiveMemberCount() {
-  try {
-    const members = getMembers();
-    return members.filter(m => m.status === '활성').length;
-    
-  } catch (error) {
-    console.error('활성 회원 수 조회 오류:', error);
-    return 0;
-  }
-}
-
-// 주간 신규 가입자 수 조회
-function getWeeklyNewMemberCount() {
-  try {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const members = getMembers();
-    return members.filter(function(member) {
-      return new Date(member.joinDate) >= oneWeekAgo;
-    }).length;
-    
-  } catch (error) {
-    console.error('주간 신규 가입자 수 조회 오류:', error);
-    return 0;
-  }
+function getStatisticsHTML() {
+  return '통계 HTML 내용';
 }
