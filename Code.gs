@@ -779,3 +779,94 @@ function formatNumber(num) {
   }
   return new Intl.NumberFormat('ko-KR').format(num);
 }
+
+// ===== 관리자 계정 확인 및 생성 함수 =====
+function ensureAdminAccount() {
+  console.log('관리자 계정 확인 및 생성 시작');
+  
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      initializeMembersSheet();
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    let hasAdmin = false;
+    
+    // 기존 관리자 계정 확인
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === '관리자' && data[i][8] === 'Y') {
+        hasAdmin = true;
+        console.log('기존 관리자 계정 발견:', data[i]);
+        break;
+      }
+    }
+    
+    // 관리자 계정이 없으면 생성
+    if (!hasAdmin) {
+      console.log('관리자 계정 생성 중...');
+      const adminPassword = hashPassword('admin123');
+      const adminData = [
+        'M0001',
+        '관리자', 
+        '시스템',
+        '관리자',
+        '시스템관리자',
+        adminPassword,
+        new Date(),
+        '활성',
+        'Y'
+      ];
+      
+      sheet.appendRow(adminData);
+      console.log('관리자 계정 생성 완료');
+      
+      return { 
+        success: true, 
+        message: '관리자 계정이 생성되었습니다.\n닉네임: 관리자\n비밀번호: admin123' 
+      };
+    } else {
+      return { 
+        success: true, 
+        message: '관리자 계정이 이미 존재합니다.' 
+      };
+    }
+    
+  } catch (error) {
+    console.error('관리자 계정 확인 오류:', error);
+    return { 
+      success: false, 
+      message: '관리자 계정 확인 중 오류가 발생했습니다: ' + error.message 
+    };
+  }
+}
+
+// ===== 시트 내용 직접 확인 함수 =====
+function debugMemberSheetContents() {
+  console.log('=== 회원 시트 내용 직접 확인 ===');
+  
+  try {
+    const sheet = getSheet(SHEET_NAMES.MEMBERS);
+    if (!sheet) {
+      console.log('❌ 회원 시트가 없습니다');
+      return;
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('전체 데이터:');
+    
+    for (let i = 0; i < data.length; i++) {
+      console.log(`행 ${i + 1}:`, data[i]);
+      
+      // 관리자 계정 특별 표시
+      if (data[i][1] === '관리자') {
+        console.log('🔑 관리자 계정 발견!');
+      }
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.error('시트 내용 확인 오류:', error);
+  }
+}
