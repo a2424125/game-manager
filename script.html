@@ -510,20 +510,45 @@ function loadMembers() {
 function loadMembersData() {
     console.log('📊 회원 데이터 로드 시작');
     
-    // 캐시된 데이터가 있으면 먼저 표시
-    if (membersCache && membersCache.length > 0) {
-        console.log('📋 캐시된 데이터 사용:', membersCache.length + '명');
-        displayMembersTable(membersCache);
-        updateMembersStats(membersCache);
-        hideLoader();
-        
-        // 백그라운드에서 새 데이터 로드
-        setTimeout(function() {
-            refreshMembersDataInBackground();
-        }, 500);
-        
-        return;
-    }
+    // 임시로 테스트 데이터 사용
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('✅ 서버 데이터 로드 성공:', members ? members.length : 0, '명');
+            
+            // 데이터가 없으면 테스트 데이터 요청
+            if (!members || members.length === 0) {
+                console.log('⚠️ 데이터 없음 - 테스트 데이터 시도');
+                google.script.run
+                    .withSuccessHandler(function(testMembers) {
+                        console.log('🧪 테스트 데이터:', testMembers);
+                        membersCache = testMembers;
+                        hideLoader();
+                        displayMembersTable(testMembers);
+                        updateMembersStats(testMembers);
+                        drawParticipationChart(testMembers);
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('테스트 데이터 실패:', error);
+                        hideLoader();
+                        displayEmptyMembersMessage();
+                    })
+                    .getTestMembers();
+                return;
+            }
+            
+            membersCache = members;
+            hideLoader();
+            displayMembersTable(members);
+            updateMembersStats(members);
+            drawParticipationChart(members);
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 서버 데이터 로드 실패:', error);
+            hideLoader();
+            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
+        })
+        .getMembers();
+}
     
     // 서버에서 데이터 로드
     google.script.run
