@@ -1,81 +1,217 @@
 <script>
-// 전역 변수
+// ===== 전역 변수 =====
 var currentUser = null;
 var currentPage = 'dashboard';
 var membersCache = null; // 회원 목록 캐시
 
-// 페이지 로드 시 초기화
+// ===== 세션 관리 함수들 =====
+function saveSession(user) {
+    try {
+        sessionStorage.setItem('guildUser', JSON.stringify(user));
+        sessionStorage.setItem('guildSessionTime', Date.now().toString());
+        console.log('✅ 세션 저장 완료:', user.nickname);
+        return true;
+    } catch(e) {
+        console.error('❌ 세션 저장 실패:', e);
+        return false;
+    }
+}
+
+function loadSession() {
+    try {
+        var savedUser = sessionStorage.getItem('guildUser');
+        var sessionTime = sessionStorage.getItem('guildSessionTime');
+        
+        if (savedUser && sessionTime) {
+            var user = JSON.parse(savedUser);
+            var timeStamp = parseInt(sessionTime);
+            var now = Date.now();
+            
+            // 24시간 이내 세션만 유효
+            if (now - timeStamp < 24 * 60 * 60 * 1000) {
+                console.log('✅ 유효한 세션 발견:', user.nickname);
+                return user;
+            } else {
+                console.log('⏰ 세션 만료, 삭제합니다');
+                clearSession();
+            }
+        }
+    } catch(e) {
+        console.error('❌ 세션 로드 실패:', e);
+        clearSession();
+    }
+    return null;
+}
+
+function clearSession() {
+    try {
+        sessionStorage.removeItem('guildUser');
+        sessionStorage.removeItem('guildSessionTime');
+        console.log('🗑️ 세션 삭제 완료');
+    } catch(e) {
+        console.warn('⚠️ 세션 삭제 실패:', e);
+    }
+}
+
+function validateCurrentSession() {
+    if (!currentUser) {
+        var savedUser = loadSession();
+        if (savedUser) {
+            currentUser = savedUser;
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+// ===== 페이지 로드 시 초기화 =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('페이지 로드 완료');
+    console.log('🚀 길드 관리 시스템 초기화 시작');
     
-    // 초기 상태 설정
-    var appContainer = document.getElementById('appContainer');
-    appContainer.style.display = 'none';
-    appContainer.style.visibility = 'hidden';
-    appContainer.style.opacity = '0';
-    appContainer.classList.remove('show');
+    // 저장된 세션 확인 및 자동 로그인
+    var savedUser = loadSession();
+    if (savedUser) {
+        console.log('📋 저장된 세션으로 자동 로그인:', savedUser.nickname);
+        currentUser = savedUser;
+        
+        // 앱 화면으로 즉시 전환
+        showApp();
+        return;
+    }
     
-    // body에 not-logged-in 클래스 추가
-    document.body.classList.add('not-logged-in');
+    console.log('🔐 세션 없음 - 로그인 화면 표시');
+    
+    // 로그인 화면 초기화
+    initializeLoginScreen();
     
     hideLoader();
-    
-    // 로그인 폼 이벤트
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('registerForm').addEventListener('submit', handleRegister);
 });
 
-// 로더 관리
+function initializeLoginScreen() {
+    // 앱 컨테이너 완전히 숨김
+    var appContainer = document.getElementById('appContainer');
+    if (appContainer) {
+        appContainer.style.display = 'none';
+        appContainer.style.visibility = 'hidden';
+        appContainer.style.opacity = '0';
+        appContainer.classList.remove('show');
+    }
+    
+    // body 클래스 설정
+    document.body.classList.add('not-logged-in');
+    document.body.classList.remove('logged-in');
+    
+    // 로그인 컨테이너 표시
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'flex';
+    }
+    
+    // 이벤트 리스너 등록
+    var loginForm = document.getElementById('loginForm');
+    var registerForm = document.getElementById('registerForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    }
+}
+
+// ===== 로더 관리 =====
 function showLoader() {
-    document.getElementById('loader').style.display = 'flex';
+    var loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'flex';
+    }
 }
 
 function hideLoader() {
-    document.getElementById('loader').style.display = 'none';
+    var loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
 }
 
-// 로그인/회원가입 토글
+// ===== 로그인/회원가입 토글 =====
 function showRegister() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
+    var loginForm = document.getElementById('loginForm');
+    var registerForm = document.getElementById('registerForm');
+    
+    if (loginForm && registerForm) {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    }
 }
 
 function showLogin() {
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('loginForm').style.display = 'block';
+    var registerForm = document.getElementById('registerForm');
+    var loginForm = document.getElementById('loginForm');
+    
+    if (registerForm && loginForm) {
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+    }
 }
 
-// 로그인 처리
+// ===== 로그인 처리 =====
 function handleLogin(e) {
     e.preventDefault();
     showLoader();
     
-    var nickname = document.getElementById('loginNickname').value;
+    var nickname = document.getElementById('loginNickname').value.trim();
     var password = document.getElementById('loginPassword').value;
+    
+    if (!nickname || !password) {
+        hideLoader();
+        alert('닉네임과 비밀번호를 모두 입력해주세요.');
+        return;
+    }
+    
+    console.log('🔐 로그인 시도:', nickname);
     
     google.script.run
         .withSuccessHandler(onLoginSuccess)
-        .withFailureHandler(onError)
+        .withFailureHandler(onLoginError)
         .login(nickname, password);
 }
 
 function onLoginSuccess(result) {
     hideLoader();
     
+    console.log('📨 로그인 응답:', result);
+    
     if (result.success) {
         currentUser = result.user;
-        console.log('로그인 성공:', currentUser);
+        console.log('✅ 로그인 성공:', currentUser.nickname);
+        
+        // 세션 저장
+        if (saveSession(currentUser)) {
+            console.log('💾 세션 저장 완료');
+        }
         
         // 회원 목록 캐시 초기화
         membersCache = null;
         
+        // 앱 화면으로 전환
         showApp();
+        
     } else {
-        alert(result.message);
+        console.log('❌ 로그인 실패:', result.message);
+        alert('로그인 실패: ' + (result.message || '알 수 없는 오류'));
     }
 }
 
-// ===== 수정된 회원가입 처리 =====
+function onLoginError(error) {
+    hideLoader();
+    console.error('❌ 로그인 오류:', error);
+    alert('로그인 중 오류가 발생했습니다: ' + (error.message || error));
+}
+
+// ===== 회원가입 처리 =====
 function handleRegister(e) {
     e.preventDefault();
     showLoader();
@@ -117,7 +253,7 @@ function handleRegister(e) {
         password: password
     };
     
-    console.log('회원가입 요청 데이터:', userData);
+    console.log('📝 회원가입 시도:', userData.nickname);
     
     google.script.run
         .withSuccessHandler(onRegisterSuccess)
@@ -125,11 +261,10 @@ function handleRegister(e) {
         .register(userData);
 }
 
-// ===== 수정된 회원가입 성공 처리 =====
 function onRegisterSuccess(result) {
     hideLoader();
     
-    console.log('회원가입 응답:', result);
+    console.log('📨 회원가입 응답:', result);
     
     if (result.success) {
         // 회원 목록 캐시 무효화
@@ -147,42 +282,66 @@ function onRegisterSuccess(result) {
         // 회원가입한 닉네임을 로그인 폼에 자동 입력
         if (result.newMember && result.newMember.nickname) {
             document.getElementById('loginNickname').value = result.newMember.nickname;
-            document.getElementById('loginPassword').focus();
+            var passwordField = document.getElementById('loginPassword');
+            if (passwordField) {
+                passwordField.focus();
+            }
         }
         
-        console.log('✅ 회원가입 완료 - 캐시 무효화됨');
+        console.log('✅ 회원가입 완료');
         
     } else {
-        alert('회원가입 실패: ' + result.message);
+        console.log('❌ 회원가입 실패:', result.message);
+        alert('회원가입 실패: ' + (result.message || '알 수 없는 오류'));
     }
 }
 
-// ===== 회원가입 실패 처리 =====
 function onRegisterError(error) {
     hideLoader();
-    console.error('회원가입 오류:', error);
-    alert('회원가입 중 오류가 발생했습니다: ' + error.message);
+    console.error('❌ 회원가입 오류:', error);
+    alert('회원가입 중 오류가 발생했습니다: ' + (error.message || error));
 }
 
-// 앱 표시
+// ===== 앱 화면 표시 =====
 function showApp() {
+    console.log('🎯 앱 화면 전환 시작');
+    
+    if (!currentUser) {
+        console.error('❌ 사용자 정보 없음 - 로그인 화면으로 돌아갑니다');
+        logout();
+        return;
+    }
+    
     // body 클래스 변경
     document.body.classList.remove('not-logged-in');
     document.body.classList.add('logged-in');
     
     // 로그인 컨테이너 숨김
-    document.getElementById('loginContainer').style.display = 'none';
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'none';
+    }
     
     // 앱 컨테이너 표시
     var appContainer = document.getElementById('appContainer');
-    appContainer.style.display = 'block';
-    appContainer.style.visibility = 'visible';
-    appContainer.style.opacity = '1';
-    appContainer.classList.add('show');
+    if (appContainer) {
+        appContainer.style.display = 'block';
+        appContainer.style.visibility = 'visible';
+        appContainer.style.opacity = '1';
+        appContainer.classList.add('show');
+    }
     
     // 사용자 정보 표시
-    document.getElementById('userName').textContent = currentUser.nickname;
-    document.getElementById('userRole').textContent = currentUser.isAdmin ? '관리자' : '일반 회원';
+    var userName = document.getElementById('userName');
+    var userRole = document.getElementById('userRole');
+    
+    if (userName) {
+        userName.textContent = currentUser.nickname;
+    }
+    
+    if (userRole) {
+        userRole.textContent = currentUser.isAdmin ? '관리자' : '일반 회원';
+    }
     
     // 관리자 메뉴 표시
     if (currentUser.isAdmin) {
@@ -193,14 +352,20 @@ function showApp() {
         }
     }
     
+    console.log('✅ 앱 화면 전환 완료 - 사용자:', currentUser.nickname);
+    
     // 대시보드 로드
     showPage('dashboard');
 }
 
-// 로그아웃
+// ===== 로그아웃 =====
 function logout() {
+    console.log('🚪 로그아웃 시작');
+    
+    // 세션 정리
     currentUser = null;
-    membersCache = null; // 캐시 초기화
+    membersCache = null;
+    clearSession();
     
     // body 클래스 변경
     document.body.classList.remove('logged-in');
@@ -208,18 +373,37 @@ function logout() {
     
     // 앱 컨테이너 숨김
     var appContainer = document.getElementById('appContainer');
-    appContainer.classList.remove('show');
-    appContainer.style.display = 'none';
-    appContainer.style.visibility = 'hidden';
-    appContainer.style.opacity = '0';
+    if (appContainer) {
+        appContainer.classList.remove('show');
+        appContainer.style.display = 'none';
+        appContainer.style.visibility = 'hidden';
+        appContainer.style.opacity = '0';
+    }
     
     // 로그인 컨테이너 표시
-    document.getElementById('loginContainer').style.display = 'flex';
-    document.getElementById('loginForm').reset();
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'flex';
+    }
+    
+    // 로그인 폼 초기화
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.reset();
+    }
+    
+    console.log('✅ 로그아웃 완료');
 }
 
-// 페이지 네비게이션
+// ===== 페이지 네비게이션 =====
 function showPage(page) {
+    // 세션 유효성 검증
+    if (!validateCurrentSession()) {
+        console.log('❌ 세션 만료 - 로그인 화면으로 이동');
+        logout();
+        return;
+    }
+    
     currentPage = page;
     
     // 메뉴 활성화 표시
@@ -240,6 +424,8 @@ function showPage(page) {
     if (clickedMenu) {
         clickedMenu.classList.add('active');
     }
+    
+    console.log('📄 페이지 전환:', page);
     
     // 페이지 콘텐츠 로드
     switch(page) {
@@ -270,29 +456,33 @@ function showPage(page) {
         case 'admin':
             loadAdmin();
             break;
+        default:
+            console.warn('알 수 없는 페이지:', page);
+            loadDashboard();
     }
 }
 
-// 대시보드 로드
+// ===== 대시보드 로드 =====
 function loadDashboard() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             hideLoader();
-            // 최근 활동 로드
             loadRecentActivities();
         })
         .withFailureHandler(onError)
         .getDashboardHTML();
 }
 
-// 최근 활동 로드
 function loadRecentActivities() {
-    // 구현할 함수 - 임시로 비워둠
+    // 최근 활동 로드 로직 (필요시 구현)
 }
 
-// ===== 수정된 길드원 목록 로드 함수 =====
+// ===== 길드원 목록 로드 =====
 function loadMembers() {
     console.log('🚀 길드원 목록 페이지 로드 시작');
     showLoader();
@@ -300,21 +490,23 @@ function loadMembers() {
     // 먼저 HTML 로드
     google.script.run
         .withSuccessHandler(function(html) {
-            console.log('✅ HTML 로드 성공');
-            document.getElementById('contentWrapper').innerHTML = html;
+            console.log('✅ 길드원 HTML 로드 성공');
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             
             // HTML 로드 후 바로 데이터 로드 시작
             loadMembersData();
         })
         .withFailureHandler(function(error) {
-            console.error('❌ HTML 로드 실패:', error);
+            console.error('❌ 길드원 HTML 로드 실패:', error);
             hideLoader();
             onError(error);
         })
         .getMembersHTML();
 }
 
-// 회원 데이터 로드 함수
 function loadMembersData() {
     console.log('📊 회원 데이터 로드 시작');
     
@@ -336,7 +528,7 @@ function loadMembersData() {
     // 서버에서 데이터 로드
     google.script.run
         .withSuccessHandler(function(members) {
-            console.log('✅ 서버 데이터 로드 성공:', members.length + '명');
+            console.log('✅ 서버 데이터 로드 성공:', members ? members.length : 0, '명');
             
             // 캐시 업데이트
             membersCache = members;
@@ -356,29 +548,30 @@ function loadMembersData() {
         .withFailureHandler(function(error) {
             console.error('❌ 서버 데이터 로드 실패:', error);
             hideLoader();
-            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + error.message);
+            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
         })
         .getMembers();
 }
 
-// 백그라운드에서 회원 데이터 새로고침
 function refreshMembersDataInBackground() {
     console.log('🔄 백그라운드 데이터 새로고침');
     
     google.script.run
         .withSuccessHandler(function(members) {
-            console.log('✅ 백그라운드 새로고침 성공:', members.length + '명');
+            console.log('✅ 백그라운드 새로고침 성공:', members ? members.length : 0, '명');
             
             // 캐시 업데이트
             var oldCount = membersCache ? membersCache.length : 0;
             membersCache = members;
             
             // 데이터가 변경되었으면 자동 업데이트
-            if (oldCount !== members.length) {
+            if (oldCount !== (members ? members.length : 0)) {
                 console.log('📊 데이터 변경 감지 - 자동 업데이트');
-                displayMembersTable(members);
-                updateMembersStats(members);
-                drawParticipationChart(members);
+                if (members && members.length > 0) {
+                    displayMembersTable(members);
+                    updateMembersStats(members);
+                    drawParticipationChart(members);
+                }
             }
         })
         .withFailureHandler(function(error) {
@@ -387,13 +580,18 @@ function refreshMembersDataInBackground() {
         .forceRefreshMembers();
 }
 
-// ===== 회원 테이블 표시 함수 개선 =====
+// ===== 회원 테이블 표시 =====
 function displayMembersTable(members) {
-    console.log('📋 회원 테이블 표시 시작:', members.length + '명');
+    console.log('📋 회원 테이블 표시 시작:', members ? members.length : 0, '명');
     
     var tbody = document.getElementById('membersTableBody');
     if (!tbody) {
         console.error('❌ 테이블 본문을 찾을 수 없음');
+        return;
+    }
+    
+    if (!members || members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">등록된 회원이 없습니다.</td></tr>';
         return;
     }
     
@@ -453,88 +651,12 @@ function displayMembersTable(members) {
         '</tr>';
     }
     
-    if (html === '') {
-        html = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">등록된 회원이 없습니다.</td></tr>';
-    }
-    
     tbody.innerHTML = html;
     console.log('✅ 테이블 표시 완료');
 }
 
-// ===== 강제 새로고침 함수들 =====
-function forceRefreshMembersData() {
-    console.log('💪 강제 회원 목록 새로고침');
-    showLoader();
-    
-    // 캐시 무효화
-    membersCache = null;
-    
-    google.script.run
-        .withSuccessHandler(function(members) {
-            console.log('✅ 강제 새로고침 성공:', members.length + '명');
-            
-            // 캐시 업데이트
-            membersCache = members;
-            
-            hideLoader();
-            
-            if (members && members.length > 0) {
-                displayMembersTable(members);
-                updateMembersStats(members);
-                drawParticipationChart(members);
-                
-                // 성공 메시지 (선택적)
-                console.log('🎉 회원 목록이 새로고침되었습니다!');
-            } else {
-                displayEmptyMembersMessage();
-                
-                // 데이터가 없으면 테스트 데이터 생성 제안
-                if (confirm('등록된 회원이 없습니다.\n테스트 데이터를 생성하시겠습니까?')) {
-                    createTestDataNow();
-                }
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('❌ 강제 새로고침 실패:', error);
-            hideLoader();
-            displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + error.message);
-        })
-        .forceRefreshMembers();
-}
-
-// ===== 테스트 데이터 생성 =====
-function createTestDataNow() {
-    console.log('🧪 테스트 데이터 생성 시작');
-    showLoader();
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            console.log('✅ 테스트 데이터 생성 완료:', result);
-            hideLoader();
-            
-            if (result.success) {
-                alert(result.message);
-                
-                // 캐시 무효화 후 데이터 새로고침
-                membersCache = null;
-                setTimeout(function() {
-                    loadMembersData();
-                }, 1000);
-            } else {
-                alert('테스트 데이터 생성 실패: ' + result.message);
-            }
-        })
-        .withFailureHandler(function(error) {
-            console.error('❌ 테스트 데이터 생성 실패:', error);
-            hideLoader();
-            alert('테스트 데이터 생성 실패: ' + error.message);
-        })
-        .setupCompleteTestEnvironment();
-}
-
-// 통계 업데이트 함수 (안전성 개선)
 function updateMembersStats(members) {
-    console.log('📊 회원 통계 업데이트:', members.length + '명');
+    console.log('📊 회원 통계 업데이트:', members ? members.length : 0, '명');
     
     var total = members ? members.length : 0;
     var active = members ? members.filter(function(m) { return m.status === '활성'; }).length : 0;
@@ -548,9 +670,7 @@ function updateMembersStats(members) {
         var element = document.getElementById(id);
         if (element) {
             element.textContent = text;
-            console.log(`통계 업데이트: ${id} = ${text}`);
-        } else {
-            console.warn('요소를 찾을 수 없음:', id);
+            console.log('통계 업데이트:', id, '=', text);
         }
     }
     
@@ -559,10 +679,9 @@ function updateMembersStats(members) {
     updateElementText('inactiveMembersCount', inactive + '명');
     updateElementText('totalParticipationCount', totalParticipation + '회');
     
-    console.log('✅ 통계 업데이트 완료 - 총:', total, '활성:', active, '참여:', totalParticipation);
+    console.log('✅ 통계 업데이트 완료');
 }
 
-// 빈 메시지 표시 (개선됨)
 function displayEmptyMembersMessage() {
     console.log('📝 빈 회원 메시지 표시');
     
@@ -581,11 +700,9 @@ function displayEmptyMembersMessage() {
         '</td></tr>';
     }
     
-    // 통계도 0으로 업데이트
     updateMembersStats([]);
 }
 
-// 에러 메시지 표시 (개선됨)
 function displayErrorMessage(message) {
     console.log('❌ 에러 메시지 표시:', message);
     
@@ -604,13 +721,74 @@ function displayErrorMessage(message) {
         '</td></tr>';
     }
     
-    // 통계도 0으로 업데이트  
     updateMembersStats([]);
 }
 
-// ===== 목록 새로고침 버튼들 =====
+// ===== 강제 새로고침 함수들 =====
+function forceRefreshMembersData() {
+    console.log('💪 강제 회원 목록 새로고침');
+    showLoader();
+    
+    membersCache = null;
+    
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('✅ 강제 새로고침 성공:', members ? members.length : 0, '명');
+            
+            membersCache = members;
+            hideLoader();
+            
+            if (members && members.length > 0) {
+                displayMembersTable(members);
+                updateMembersStats(members);
+                drawParticipationChart(members);
+                console.log('🎉 회원 목록이 새로고침되었습니다!');
+            } else {
+                displayEmptyMembersMessage();
+                
+                if (confirm('등록된 회원이 없습니다.\n테스트 데이터를 생성하시겠습니까?')) {
+                    createTestDataNow();
+                }
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 강제 새로고침 실패:', error);
+            hideLoader();
+            displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
+        })
+        .forceRefreshMembers();
+}
+
+function createTestDataNow() {
+    console.log('🧪 테스트 데이터 생성 시작');
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            console.log('✅ 테스트 데이터 생성 완료:', result);
+            hideLoader();
+            
+            if (result.success) {
+                alert(result.message);
+                
+                membersCache = null;
+                setTimeout(function() {
+                    loadMembersData();
+                }, 1000);
+            } else {
+                alert('테스트 데이터 생성 실패: ' + (result.message || '알 수 없는 오류'));
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.error('❌ 테스트 데이터 생성 실패:', error);
+            hideLoader();
+            alert('테스트 데이터 생성 실패: ' + (error.message || error));
+        })
+        .setupCompleteTestEnvironment();
+}
+
 function exportMembersList() {
-    console.log('목록 새로고침 실행 (기존 내보내기 버튼)');
+    console.log('목록 새로고침 실행');
     forceRefreshMembersData();
 }
 
@@ -619,7 +797,7 @@ function refreshMembersList() {
     forceRefreshMembersData();
 }
 
-// 검색 및 필터링 함수들 (개선됨)
+// ===== 검색 및 필터링 함수들 =====
 function searchMembers(keyword) {
     console.log('회원 검색:', keyword);
     
@@ -688,22 +866,16 @@ function filterMembersByJob(job) {
     console.log('직업 필터 결과:', visibleCount + '명 표시');
 }
 
-// 정렬 함수 (개선됨)
 function sortMembers(sortBy) {
     console.log('회원 정렬:', sortBy);
-    // 현재는 단순히 데이터를 다시 로드하지만, 나중에 클라이언트 사이드 정렬로 개선 가능
     forceRefreshMembersData();
 }
 
-// 회원 상세 정보 표시
 function showMemberDetail(nickname) {
     console.log('회원 상세 정보 표시:', nickname);
-    
-    // 현재는 간단한 알림만 표시, 나중에 모달로 개선 가능
-    alert('회원 상세 정보: ' + nickname + '\n\n상세 정보 기능은 준비 중입니다.\n\n구현 예정 기능:\n- 참여 히스토리\n- 획득 아이템\n- 활동 통계\n- 메모 관리');
+    alert('회원 상세 정보: ' + nickname + '\n\n상세 정보 기능은 준비 중입니다.');
 }
 
-// 참여율 차트 그리기
 function drawParticipationChart(members) {
     console.log('참여율 차트 그리기');
     
@@ -711,25 +883,20 @@ function drawParticipationChart(members) {
     if (canvas && members && members.length > 0) {
         var ctx = canvas.getContext('2d');
         
-        // 캔버스 초기화
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // 배경
         ctx.fillStyle = '#F8FAFC';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // 차트 제목
         ctx.fillStyle = '#00BCD4';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('참여율 분포', canvas.width/2, canvas.height/2 - 20);
         
-        // 부제목
         ctx.fillStyle = '#666';
         ctx.font = '14px Arial';
         ctx.fillText('총 ' + members.length + '명의 길드원', canvas.width/2, canvas.height/2);
         
-        // 새로고침 안내
         ctx.font = '12px Arial';
         ctx.fillStyle = '#999';
         ctx.fillText('※ 상세 차트는 준비 중입니다', canvas.width/2, canvas.height/2 + 25);
@@ -747,195 +914,49 @@ function drawParticipationChart(members) {
     }
 }
 
-// 직업별 색상 반환 함수
 function getJobColor(job) {
     var jobColors = {
-        // 전사 계열 - 빨간색 계열
-        '버서커': '#E53E3E',
-        '디스트로이어': '#C53030',
-        '워로드': '#9B2C2C',
-        '홀리나이트': '#742A2A',
-        '슬레이어': '#E53E3E',
-        
-        // 무도가 계열 - 주황색 계열
-        '배틀마스터': '#DD6B20',
-        '인파이터': '#C05621',
-        '기공사': '#9C4221',
-        '창술사': '#7B341E',
-        '스트라이커': '#DD6B20',
-        '브레이커': '#C05621',
-        
-        // 건너 계열 - 녹색 계열
-        '건슬링어': '#38A169',
-        '아르티스트': '#2F855A',
-        '데빌헌터': '#276749',
-        '블래스터': '#22543D',
-        '호크아이': '#1A202C',
-        '스카우터': '#38A169',
-        
-        // 마법사 계열 - 파란색 계열
-        '바드': '#3182CE',
-        '서머너': '#2B6CB0',
-        '아르카나': '#2C5282',
-        '소서리스': '#2A4365',
-        
-        // 암살자 계열 - 보라색 계열
-        '블레이드': '#805AD5',
-        '데모닉': '#6B46C1',
-        '리퍼': '#553C9A',
-        '소울이터': '#44337A',
-        
-        // 스페셜리스트 계열 - 특별색
-        '도화가': '#D69E2E',
-        '기상술사': '#00B5D8'
+        '버서커': '#E53E3E', '디스트로이어': '#C53030', '워로드': '#9B2C2C',
+        '홀리나이트': '#742A2A', '슬레이어': '#E53E3E',
+        '배틀마스터': '#DD6B20', '인파이터': '#C05621', '기공사': '#9C4221',
+        '창술사': '#7B341E', '스트라이커': '#DD6B20', '브레이커': '#C05621',
+        '건슬링어': '#38A169', '아르티스트': '#2F855A', '데빌헌터': '#276749',
+        '블래스터': '#22543D', '호크아이': '#1A202C', '스카우터': '#38A169',
+        '바드': '#3182CE', '서머너': '#2B6CB0', '아르카나': '#2C5282', '소서리스': '#2A4365',
+        '블레이드': '#805AD5', '데모닉': '#6B46C1', '리퍼': '#553C9A', '소울이터': '#44337A',
+        '도화가': '#D69E2E', '기상술사': '#00B5D8'
     };
     
-    return jobColors[job] || '#718096'; // 기본 회색
+    return jobColors[job] || '#718096';
 }
 
-// ===== 기존 함수들 계속 =====
-
-// 보스 참여 등록 로드
+// ===== 기타 페이지 로드 함수들 =====
 function loadBossRecord() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
-            document.getElementById('bossRecordForm').addEventListener('submit', handleBossRecord);
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+                var form = document.getElementById('bossRecordForm');
+                if (form) {
+                    form.addEventListener('submit', handleBossRecord);
+                }
+            }
             hideLoader();
         })
         .withFailureHandler(onError)
         .getBossRecordHTML();
 }
 
-// 이미지 업로드 처리
-function handleImageUpload(input) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var base64 = e.target.result.split(',')[1];
-            extractParticipants(base64);
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-// Gemini API로 참여자 추출
-function extractParticipants(base64) {
-    showLoader();
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                displayExtractedParticipants(result.nicknames);
-            } else {
-                alert(result.message);
-            }
-            hideLoader();
-        })
-        .withFailureHandler(onError)
-        .extractParticipantsFromImage(base64);
-}
-
-// 추출된 참여자 표시
-function displayExtractedParticipants(nicknames) {
-    var container = document.getElementById('extractedParticipants');
-    var list = document.getElementById('participantList');
-    
-    container.style.display = 'block';
-    list.innerHTML = '';
-    
-    window.extractedNicknames = nicknames; // 전역 변수에 저장
-    
-    for (var i = 0; i < nicknames.length; i++) {
-        var item = document.createElement('div');
-        item.className = 'participant-item';
-        item.innerHTML = '<span>' + nicknames[i] + '</span>' +
-            '<button class="btn btn-sm" onclick="removeParticipant(' + i + ')">' +
-            '<span class="material-icons">close</span></button>';
-        list.appendChild(item);
-    }
-    
-    updateParticipantCount();
-}
-
-// 참여자 제거
-function removeParticipant(index) {
-    window.extractedNicknames.splice(index, 1);
-    displayExtractedParticipants(window.extractedNicknames);
-}
-
-// 참여자 수 업데이트
-function updateParticipantCount() {
-    var extracted = document.querySelectorAll('.participant-item').length;
-    var additionalInput = document.getElementById('additionalParticipants');
-    var additional = 0;
-    
-    if (additionalInput && additionalInput.value) {
-        var additionalList = additionalInput.value.split(',');
-        additional = additionalList.filter(function(p) { 
-            return p.trim(); 
-        }).length;
-    }
-    
-    var totalElement = document.getElementById('totalParticipants');
-    if (totalElement) {
-        totalElement.textContent = (extracted + additional) + '명';
-    }
-}
-
-// 보스 기록 저장
-function handleBossRecord(e) {
-    e.preventDefault();
-    showLoader();
-    
-    var participants = [];
-    
-    // 추출된 참여자
-    if (window.extractedNicknames) {
-        participants = participants.concat(window.extractedNicknames);
-    }
-    
-    // 추가 참여자
-    var additional = document.getElementById('additionalParticipants').value;
-    if (additional) {
-        var additionalList = additional.split(',');
-        for (var i = 0; i < additionalList.length; i++) {
-            var participant = additionalList[i].trim();
-            if (participant) {
-                participants.push(participant);
-            }
-        }
-    }
-    
-    var recordData = {
-        bossName: document.getElementById('bossName').value,
-        participants: participants,
-        item: document.getElementById('itemName').value,
-        itemCount: parseInt(document.getElementById('itemCount').value) || 0
-    };
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            if (result.success) {
-                alert(result.message);
-                
-                // 회원 목록 캐시 무효화 (새로운 참여 기록이 추가되었으므로)
-                membersCache = null;
-                
-                loadBossRecord(); // 페이지 새로고침
-            }
-            hideLoader();
-        })
-        .withFailureHandler(onError)
-        .saveBossRecord(recordData);
-}
-
-// 아이템 판매 페이지 로드
 function loadItemSales() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             loadUnsoldItems();
             hideLoader();
         })
@@ -943,15 +964,17 @@ function loadItemSales() {
         .getItemSalesHTML();
 }
 
-// 길드 자금 페이지 로드
 function loadGuildFunds() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
-            var form = document.getElementById('fundTransactionForm');
-            if (form) {
-                form.addEventListener('submit', handleFundTransaction);
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+                var form = document.getElementById('fundTransactionForm');
+                if (form) {
+                    form.addEventListener('submit', handleFundTransaction);
+                }
             }
             loadTransactionHistory();
             hideLoader();
@@ -960,12 +983,14 @@ function loadGuildFunds() {
         .getGuildFundsHTML();
 }
 
-// 기타 페이지 로드 함수들
 function loadBossHistory() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             loadBossHistoryData();
             hideLoader();
         })
@@ -977,24 +1002,27 @@ function loadDistribution() {
     showLoader();
     google.script.run
         .withSuccessHandler(function(html) {
-            document.getElementById('contentWrapper').innerHTML = html;
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             hideLoader();
         })
         .withFailureHandler(onError)
         .getDistributionHTML();
 }
 
-// 통계 페이지 로드
 function loadStatistics() {
     console.log('통계 페이지 로드 시작');
     showLoader();
     
-    // 먼저 HTML을 로드한 후 데이터를 불러옴
     google.script.run
         .withSuccessHandler(function(html) {
             console.log('통계 HTML 로드 성공');
-            document.getElementById('contentWrapper').innerHTML = html;
-            // HTML이 로드된 후 데이터 로드
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             loadStatisticsData();
             hideLoader();
         })
@@ -1008,7 +1036,6 @@ function loadStatistics() {
 function loadStatisticsData() {
     console.log('통계 데이터 로드 시작');
     
-    // 보스 통계 로드
     google.script.run
         .withSuccessHandler(function(statistics) {
             console.log('보스 통계 로드 성공:', statistics);
@@ -1028,13 +1055,11 @@ function loadStatisticsData() {
 }
 
 function displayEmptyStatistics() {
-    // 참여율 순위 테이블에 빈 메시지 표시
     var participationTbody = document.getElementById('participationRankingBody');
     if (participationTbody) {
         participationTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">참여 기록이 없습니다.</td></tr>';
     }
     
-    // 보스 통계에 빈 메시지 표시
     var bossStatsDiv = document.getElementById('bossStatistics');
     if (bossStatsDiv) {
         bossStatsDiv.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">보스 통계 데이터가 없습니다.</p>';
@@ -1052,7 +1077,6 @@ function displayParticipationRanking(memberStats) {
     var html = '';
     var totalParticipation = 0;
     
-    // 전체 참여 횟수 계산
     for (var i = 0; i < memberStats.length; i++) {
         totalParticipation += memberStats[i].totalParticipation;
     }
@@ -1065,10 +1089,10 @@ function displayParticipationRanking(memberStats) {
         html += '<tr>' +
             '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
             '<td><strong>' + member.nickname + '</strong></td>' +
-            '<td>-</td>' + // 직업 정보
+            '<td>-</td>' +
             '<td>' + member.totalParticipation + '회</td>' +
             '<td>' + participationRate + '%</td>' +
-            '<td>-</td>' + // 획득 아이템
+            '<td>-</td>' +
         '</tr>';
     }
     
@@ -1119,7 +1143,6 @@ function displayBossStatisticsChart(bossStats) {
     console.log('보스 통계 차트 표시 완료');
 }
 
-// 관리자 페이지 로드
 function loadAdmin() {
     if (!currentUser || !currentUser.isAdmin) {
         alert('관리자 권한이 필요합니다.');
@@ -1132,11 +1155,11 @@ function loadAdmin() {
     google.script.run
         .withSuccessHandler(function(html) {
             console.log('관리자 HTML 로드 성공');
-            document.getElementById('contentWrapper').innerHTML = html;
-            
-            // 관리자 페이지 초기화
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
             initializeAdminPage();
-            
             hideLoader();
         })
         .withFailureHandler(function(error) {
@@ -1146,38 +1169,40 @@ function loadAdmin() {
         .getAdminHTML();
 }
 
-// 사이드바 토글
+// ===== 사이드바 토글 =====
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('active');
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+    }
 }
 
-// 숫자 포맷
+// ===== 유틸리티 함수들 =====
 function formatNumber(num) {
+    if (typeof num !== 'number') {
+        num = parseFloat(num) || 0;
+    }
     return new Intl.NumberFormat('ko-KR').format(num);
 }
 
-// 에러 처리
 function onError(error) {
     hideLoader();
-    console.error('Error:', error);
+    console.error('❌ 오류:', error);
     alert('오류가 발생했습니다: ' + (error.message || error));
 }
 
-// 차트 그리기 함수
 function drawDoughnutChart(canvas) {
     var ctx = canvas.getContext('2d');
     var centerX = canvas.width / 2;
     var centerY = canvas.height / 2;
     var radius = 80;
     
-    // 도넛 차트 그리기 (간단한 예시)
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.strokeStyle = '#E0E0E0';
     ctx.lineWidth = 20;
     ctx.stroke();
     
-    // 실제 데이터 부분
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, -Math.PI/2, Math.PI);
     ctx.strokeStyle = '#00BCD4';
@@ -1185,7 +1210,7 @@ function drawDoughnutChart(canvas) {
     ctx.stroke();
 }
 
-// 기타 빈 함수들 (필요시 구현)
+// ===== 기타 함수들 (임시 구현) =====
 function loadUnsoldItems() {
     // 미판매 아이템 로드 로직
 }
@@ -1194,9 +1219,7 @@ function loadTransactionHistory() {
     // 거래 내역 로드 로직
 }
 
-// 보스 히스토리 데이터 로드
 function loadBossHistoryData() {
-    // 보스 통계 로드
     google.script.run
         .withSuccessHandler(function(statistics) {
             displayBossStatistics(statistics.bossStats);
@@ -1205,14 +1228,12 @@ function loadBossHistoryData() {
         .withFailureHandler(onError)
         .getBossStatistics();
     
-    // 최근 보스 기록 로드
     google.script.run
         .withSuccessHandler(displayRecentBossHistory)
         .withFailureHandler(onError)
         .getRecentBossRecords(20);
 }
 
-// 보스 통계 표시
 function displayBossStatistics(bossStats) {
     var tbody = document.getElementById('bossStatsTable');
     if (!tbody) return;
@@ -1236,7 +1257,6 @@ function displayBossStatistics(bossStats) {
     tbody.innerHTML = html;
 }
 
-// 멤버 통계 표시
 function displayMemberStatistics(memberStats) {
     var tbody = document.getElementById('participationRankingTable');
     if (!tbody) return;
@@ -1244,7 +1264,6 @@ function displayMemberStatistics(memberStats) {
     var html = '';
     var totalParticipation = 0;
     
-    // 전체 참여 횟수 계산
     for (var i = 0; i < memberStats.length; i++) {
         totalParticipation += memberStats[i].totalParticipation;
     }
@@ -1257,7 +1276,7 @@ function displayMemberStatistics(memberStats) {
         html += '<tr>' +
             '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
             '<td><strong>' + member.nickname + '</strong></td>' +
-            '<td>-</td>' + // 직업 정보는 추후 연동
+            '<td>-</td>' +
             '<td>' + member.totalParticipation + '회</td>' +
             '<td>' + participationRate + '%</td>' +
             '<td>' + new Date(member.lastParticipation).toLocaleDateString() + '</td>' +
@@ -1271,7 +1290,6 @@ function displayMemberStatistics(memberStats) {
     tbody.innerHTML = html;
 }
 
-// 최근 보스 히스토리 표시
 function displayRecentBossHistory(recentRecords) {
     var tbody = document.getElementById('recentBossHistory');
     if (!tbody) return;
@@ -1280,7 +1298,6 @@ function displayRecentBossHistory(recentRecords) {
     for (var i = 0; i < recentRecords.length; i++) {
         var record = recentRecords[i];
         
-        // 참여자 배지 생성
         var participantBadges = '';
         var colors = ['bg-green', 'bg-yellow', 'bg-blue', 'bg-purple', 'bg-orange'];
         
@@ -1295,7 +1312,6 @@ function displayRecentBossHistory(recentRecords) {
             participantBadges += '<span class="badge-more">+' + (record.participants.length - 4) + '</span>';
         }
         
-        // 판매 상태 배지
         var statusClass = record.soldStatus === '판매완료' ? 'completed' : 'pending';
         
         html += '<tr>' +
@@ -1315,124 +1331,7 @@ function displayRecentBossHistory(recentRecords) {
     tbody.innerHTML = html;
 }
 
-function handleFundTransaction(e) {
-    e.preventDefault();
-    // 자금 거래 처리 로직
-}
-
-function previewDistribution() {
-    var weekNum = document.getElementById('targetWeek').value;
-    var totalAmount = parseInt(document.getElementById('distributionAmount').value);
-    
-    if (!totalAmount || totalAmount <= 0) {
-        alert('분배 총액을 입력해주세요.');
-        return;
-    }
-    
-    showLoader();
-    
-    google.script.run
-        .withSuccessHandler(function(distributions) {
-            displayDistributionPreview(distributions, totalAmount);
-            document.getElementById('distributionPreview').style.display = 'block';
-            hideLoader();
-        })
-        .withFailureHandler(onError)
-        .calculateWeeklyDistribution(weekNum);
-}
-
-function displayDistributionPreview(distributions, totalAmount) {
-    var tbody = document.querySelector('#previewTable tbody');
-    if (!tbody) return;
-    
-    var html = '';
-    for (var i = 0; i < distributions.length; i++) {
-        var dist = distributions[i];
-        var baseAmount = Math.floor(totalAmount * (parseFloat(dist.rate) / 100));
-        
-        html += '<tr>' +
-            '<td>' + (i + 1) + '</td>' +
-            '<td><strong>' + dist.nickname + '</strong></td>' +
-            '<td>' + dist.count + '회</td>' +
-            '<td>' + dist.rate + '%</td>' +
-            '<td>' + formatNumber(baseAmount) + '원</td>' +
-            '<td><strong>' + formatNumber(baseAmount) + '원</strong></td>' +
-        '</tr>';
-    }
-    
-    if (html === '') {
-        html = '<tr><td colspan="6" style="text-align: center; color: #999;">해당 주차에 참여 기록이 없습니다.</td></tr>';
-    }
-    
-    tbody.innerHTML = html;
-}
-
-function executeDistribution() {
-    if (!confirm('정말로 분배를 실행하시겠습니까? 실행 후에는 되돌릴 수 없습니다.')) {
-        return;
-    }
-    
-    var weekNum = document.getElementById('targetWeek').value;
-    var totalAmount = parseInt(document.getElementById('distributionAmount').value);
-    
-    showLoader();
-    
-    google.script.run
-        .withSuccessHandler(function(distributions) {
-            // 분배 실행 로직은 추후 구현
-            alert('분배가 완료되었습니다.');
-            hideLoader();
-        })
-        .withFailureHandler(onError)
-        .calculateWeeklyDistribution(weekNum);
-}
-
-function closeSellModal() {
-    var modal = document.getElementById('sellModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function closeEditModal() {
-    var modal = document.getElementById('editMemberModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function filterBossHistory() {
-    var periodFilter = document.getElementById('periodFilter').value;
-    var bossFilter = document.getElementById('bossFilter').value;
-    
-    // 필터 적용하여 데이터 다시 로드
-    var filter = {
-        period: periodFilter,
-        boss: bossFilter
-    };
-    
-    showLoader();
-    
-    // 필터된 데이터로 통계 갱신
-    google.script.run
-        .withSuccessHandler(function(statistics) {
-            displayBossStatistics(statistics.bossStats);
-            displayMemberStatistics(statistics.memberStats);
-            hideLoader();
-        })
-        .withFailureHandler(function(error) {
-            onError(error);
-            hideLoader();
-        })
-        .getBossStatistics();
-}
-
-function exportBossHistory() {
-    // CSV 내보내기 기능 (추후 구현)
-    alert('보스 히스토리 내보내기 기능은 준비 중입니다.');
-}
-
-// 관리자 관련 함수들 (기존 유지)
+// ===== 관리자 함수들 =====
 function initializeAdminPage() {
     // 관리자 페이지 초기화 로직
 }
@@ -1457,26 +1356,25 @@ function createBackup() {
 function runDataValidation() {
     showLoader();
     google.script.run
-        .withSuccessHandler(function(errors) {
+        .withSuccessHandler(function(result) {
             hideLoader();
-            if (errors.length === 0) {
-                alert('데이터 검증 완료: 오류가 없습니다.');
+            if (result.success) {
+                alert(result.summary + '\n\n오류: ' + result.errors.length + '개\n경고: ' + result.warnings.length + '개');
             } else {
-                alert('데이터 검증 오류:\n' + errors.join('\n'));
+                alert('데이터 검증 실패: ' + result.message);
             }
         })
         .withFailureHandler(onError)
-        .validateData();
+        .validateMemberData();
 }
 
 function updateInactiveMembers() {
     if (confirm('30일 이상 미참여 회원을 비활성화하시겠습니까?')) {
         showLoader();
         google.script.run
-            .withSuccessHandler(function() {
+            .withSuccessHandler(function(result) {
                 hideLoader();
-                alert('비활성 회원 업데이트가 완료되었습니다.');
-                // 회원 목록 캐시 무효화
+                alert(result.message);
                 membersCache = null;
             })
             .withFailureHandler(onError)
@@ -1491,11 +1389,123 @@ function initializeAllSheets() {
             .withSuccessHandler(function(result) {
                 hideLoader();
                 alert(result.message);
-                // 캐시 무효화
                 membersCache = null;
             })
             .withFailureHandler(onError)
             .initializeAllSheets();
     }
+}
+
+function setupCompleteTestEnvironment() {
+    if (confirm('완전한 테스트 환경을 설정하시겠습니까?')) {
+        showLoader();
+        google.script.run
+            .withSuccessHandler(function(result) {
+                hideLoader();
+                alert(result.message);
+                membersCache = null;
+            })
+            .withFailureHandler(onError)
+            .setupCompleteTestEnvironment();
+    }
+}
+
+function validateMemberData() {
+    showLoader();
+    google.script.run
+        .withSuccessHandler(function(result) {
+            hideLoader();
+            if (result.success) {
+                var message = '=== 시스템 진단 결과 ===\n\n';
+                message += result.summary + '\n\n';
+                if (result.errors.length > 0) {
+                    message += '❌ 오류 (' + result.errors.length + '개):\n';
+                    for (var i = 0; i < Math.min(result.errors.length, 5); i++) {
+                        message += '• ' + result.errors[i] + '\n';
+                    }
+                    if (result.errors.length > 5) {
+                        message += '• ... 외 ' + (result.errors.length - 5) + '개\n';
+                    }
+                    message += '\n';
+                }
+                if (result.warnings.length > 0) {
+                    message += '⚠️ 경고 (' + result.warnings.length + '개):\n';
+                    for (var i = 0; i < Math.min(result.warnings.length, 5); i++) {
+                        message += '• ' + result.warnings[i] + '\n';
+                    }
+                    if (result.warnings.length > 5) {
+                        message += '• ... 외 ' + (result.warnings.length - 5) + '개\n';
+                    }
+                }
+                alert(message);
+            } else {
+                alert('시스템 진단 실패: ' + result.message);
+            }
+        })
+        .withFailureHandler(onError)
+        .validateMemberData();
+}
+
+// ===== 기타 빈 함수들 =====
+function handleImageUpload(input) {
+    // 이미지 업로드 처리
+}
+
+function extractParticipants(base64) {
+    // 참여자 추출
+}
+
+function displayExtractedParticipants(nicknames) {
+    // 추출된 참여자 표시
+}
+
+function removeParticipant(index) {
+    // 참여자 제거
+}
+
+function updateParticipantCount() {
+    // 참여자 수 업데이트
+}
+
+function handleBossRecord(e) {
+    // 보스 기록 저장
+}
+
+function handleFundTransaction(e) {
+    // 자금 거래 처리
+}
+
+function previewDistribution() {
+    // 분배 미리보기
+}
+
+function displayDistributionPreview(distributions, totalAmount) {
+    // 분배 미리보기 표시
+}
+
+function executeDistribution() {
+    // 분배 실행
+}
+
+function closeSellModal() {
+    var modal = document.getElementById('sellModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function closeEditModal() {
+    var modal = document.getElementById('editMemberModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function filterBossHistory() {
+    // 보스 히스토리 필터
+}
+
+function exportBossHistory() {
+    alert('보스 히스토리 내보내기 기능은 준비 중입니다.');
 }
 </script>
