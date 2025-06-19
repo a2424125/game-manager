@@ -40,7 +40,7 @@
           <input type="password" class="form-input" id="loginPassword" required placeholder="비밀번호를 입력하세요">
         </div>
         
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
           <span class="material-icons">login</span>
           <span>로그인</span>
         </button>
@@ -54,18 +54,19 @@
       <!-- 회원가입 폼 -->
       <form id="registerForm" style="display: none;">
         <div class="form-group">
-          <label class="form-label">닉네임</label>
-          <input type="text" class="form-input" id="regNickname" required placeholder="게임 내 닉네임">
+          <label class="form-label">닉네임 <span style="color: red;">*</span></label>
+          <input type="text" class="form-input" id="regNickname" required placeholder="게임 내 닉네임" maxlength="20">
+          <small class="form-hint">2-20자 사이로 입력하세요</small>
         </div>
         
         <div class="form-group">
-          <label class="form-label">길드명</label>
-          <input type="text" class="form-input" id="regGuild" required placeholder="소속 길드명">
+          <label class="form-label">길드명 <span style="color: red;">*</span></label>
+          <input type="text" class="form-input" id="regGuild" required placeholder="소속 길드명" maxlength="30">
         </div>
         
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">서버</label>
+            <label class="form-label">서버 <span style="color: red;">*</span></label>
             <select class="form-input" id="regServer" required>
               <option value="">서버 선택</option>
               <optgroup label="로스트아크 서버">
@@ -91,7 +92,7 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label">직업</label>
+            <label class="form-label">직업 <span style="color: red;">*</span></label>
             <select class="form-input" id="regJob" required>
               <option value="">직업 선택</option>
               <optgroup label="전사">
@@ -138,16 +139,20 @@
         </div>
         
         <div class="form-group">
-          <label class="form-label">비밀번호</label>
-          <input type="password" class="form-input" id="regPassword" required placeholder="6자 이상 입력하세요">
+          <label class="form-label">비밀번호 <span style="color: red;">*</span></label>
+          <input type="password" class="form-input" id="regPassword" required placeholder="6자 이상 입력하세요" minlength="6">
+          <small class="form-hint">최소 6자 이상의 안전한 비밀번호를 입력하세요</small>
         </div>
         
         <div class="form-group">
-          <label class="form-label">비밀번호 확인</label>
+          <label class="form-label">비밀번호 확인 <span style="color: red;">*</span></label>
           <input type="password" class="form-input" id="regPasswordConfirm" required placeholder="비밀번호를 다시 입력하세요">
+          <div id="passwordMismatch" class="error-message" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
+            비밀번호가 일치하지 않습니다.
+          </div>
         </div>
         
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="registerSubmitBtn">
           <span class="material-icons">person_add</span>
           <span>가입하기</span>
         </button>
@@ -175,6 +180,10 @@
             <div class="user-name" id="userName">사용자</div>
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
+          
+          <button class="btn-icon" onclick="showChangePasswordModal()" title="비밀번호 변경">
+            <span class="material-icons">lock</span>
+          </button>
           
           <button class="btn-icon" onclick="logout()" title="로그아웃">
             <span class="material-icons">logout</span>
@@ -244,6 +253,38 @@
     <button class="mobile-menu-toggle" onclick="toggleSidebar()">
       <span class="material-icons">menu</span>
     </button>
+  </div>
+
+  <!-- 비밀번호 변경 모달 -->
+  <div id="changePasswordModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>비밀번호 변경</h3>
+        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+      </div>
+      
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label class="form-label">현재 비밀번호</label>
+          <input type="password" class="form-input" id="currentPassword" required placeholder="현재 비밀번호를 입력하세요">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">새 비밀번호</label>
+          <input type="password" class="form-input" id="newPassword" required placeholder="새 비밀번호를 입력하세요 (최소 6자)" minlength="6">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">새 비밀번호 확인</label>
+          <input type="password" class="form-input" id="newPasswordConfirm" required placeholder="새 비밀번호를 다시 입력하세요">
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">취소</button>
+          <button type="submit" class="btn btn-primary">비밀번호 변경</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- 스크립트 -->
