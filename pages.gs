@@ -1,7 +1,7 @@
 // ===== 페이지 HTML 생성 함수 =====
 
 // 대시보드 페이지
-function getDashboardHTML() {
+function getDashboardPageHTML() {
   const data = getDashboardData();
   
   return `
@@ -227,7 +227,7 @@ function getDashboardHTML() {
 }
 
 // 보스 참여 등록 페이지
-function getBossRecordHTML() {
+function getBossRecordPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">보스 참여 등록</h1>
@@ -294,8 +294,8 @@ function getBossRecordHTML() {
   `;
 }
 
-// ===== 길드원 목록 페이지 - 개선된 버전 =====
-function getMembersHTML() {
+// ===== 수정된 길드원 목록 페이지 =====
+function getMembersPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">길드원 목록</h1>
@@ -307,28 +307,28 @@ function getMembersHTML() {
       <div class="member-stat-card">
         <span class="stat-icon"><span class="material-icons">people</span></span>
         <div>
-          <div class="stat-number" id="totalMembersCount">0명</div>
+          <div class="stat-number" id="totalMembersCount">로딩중...</div>
           <div class="stat-label">전체 길드원</div>
         </div>
       </div>
       <div class="member-stat-card active">
         <span class="stat-icon"><span class="material-icons">check_circle</span></span>
         <div>
-          <div class="stat-number" id="activeMembersCount">0명</div>
+          <div class="stat-number" id="activeMembersCount">로딩중...</div>
           <div class="stat-label">활성 길드원</div>
         </div>
       </div>
       <div class="member-stat-card inactive">
         <span class="stat-icon"><span class="material-icons">cancel</span></span>
         <div>
-          <div class="stat-number" id="inactiveMembersCount">0명</div>
+          <div class="stat-number" id="inactiveMembersCount">로딩중...</div>
           <div class="stat-label">비활성 길드원</div>
         </div>
       </div>
       <div class="member-stat-card participation">
         <span class="stat-icon"><span class="material-icons">sports_esports</span></span>
         <div>
-          <div class="stat-number" id="totalParticipationCount">0회</div>
+          <div class="stat-number" id="totalParticipationCount">로딩중...</div>
           <div class="stat-label">총 보스 참여</div>
         </div>
       </div>
@@ -385,12 +385,12 @@ function getMembersHTML() {
         <h3>길드원 목록</h3>
         <div class="header-actions">
           <button class="btn btn-sm btn-secondary" onclick="exportMembersList()">
-            <span class="material-icons">download</span>
-            목록 내보내기
-          </button>
-          <button class="btn btn-sm btn-primary" onclick="refreshMembersList()">
             <span class="material-icons">refresh</span>
             새로고침
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="refreshMembersList()">
+            <span class="material-icons">download</span>
+            목록 내보내기
           </button>
         </div>
       </div>
@@ -414,10 +414,11 @@ function getMembersHTML() {
           </thead>
           <tbody id="membersTableBody">
             <tr>
-              <td colspan="11" style="text-align: center; padding: 40px; color: #999;">
+              <td colspan="11" style="text-align: center; padding: 40px; color: #00BCD4;">
                 <div class="loading-members">
-                  <span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people</span>
-                  <p>길드원 정보를 불러오는 중...</p>
+                  <span class="material-icons" style="font-size: 48px; margin-bottom: 16px; animation: spin 2s linear infinite;">refresh</span>
+                  <p><strong>길드원 정보를 불러오는 중...</strong></p>
+                  <p style="font-size: 14px; color: #999; margin-top: 8px;">잠시만 기다려주세요</p>
                 </div>
               </td>
             </tr>
@@ -435,11 +436,27 @@ function getMembersHTML() {
         <canvas id="participationChart" width="400" height="200"></canvas>
       </div>
     </div>
+    
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-members {
+        animation: fadeIn 0.5s ease;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
   `;
 }
 
 // 보스참여 히스토리 페이지
-function getBossHistoryHTML() {
+function getBossHistoryPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">보스참여 히스토리</h1>
@@ -552,7 +569,7 @@ function getBossHistoryHTML() {
 }
 
 // 아이템 판매/분배 페이지
-function getItemSalesHTML() {
+function getItemSalesPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">아이템 판매/분배</h1>
@@ -624,7 +641,7 @@ function getItemSalesHTML() {
 }
 
 // 길드 자금 관리 페이지
-function getGuildFundsHTML() {
+function getGuildFundsPageHTML() {
   const balance = getGuildBalance();
   
   return `
@@ -700,7 +717,7 @@ function getGuildFundsHTML() {
 }
 
 // 주급 분배 페이지
-function getDistributionHTML() {
+function getDistributionPageHTML() {
   const currentWeek = Utilities.formatDate(new Date(), 'GMT+9', 'w');
   
   return `
@@ -772,8 +789,8 @@ function getDistributionHTML() {
   `;
 }
 
-// ===== 통계/보고서 페이지 - 수정된 부분 =====
-function getStatisticsHTML() {
+// ===== 통계/보고서 페이지 =====
+function getStatisticsPageHTML() {
   return `
     <div class="page-header">
       <h1 class="page-title">통계/보고서</h1>
