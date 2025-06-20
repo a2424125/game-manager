@@ -35,12 +35,39 @@ function clearCache() {
 
 // ===== 웹 앱 진입점 =====
 function doGet() {
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
-    .setSandboxMode(HtmlService.SandboxMode.NATIVE)  // 이 부분이 핵심!
-    .setTitle('길드 관리 시스템')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  try {
+    var template = HtmlService.createTemplateFromFile('index');
+    
+    var htmlOutput = template.evaluate()
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)  // IFRAME 모드로 변경
+      .setTitle('길드 관리 시스템')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    
+    // CSP 헤더 완전 제거
+    return htmlOutput;
+    
+  } catch (error) {
+    // 오류 발생시 기본 HTML 반환
+    var errorHtml = HtmlService.createHtmlOutput(`
+      <html>
+        <head>
+          <title>길드 관리 시스템</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h1>길드 관리 시스템</h1>
+            <p>시스템을 초기화하는 중입니다...</p>
+            <button onclick="location.reload()">새로고침</button>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    return errorHtml.setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  }
 }
 
 // ===== 시트 접근 함수 =====
