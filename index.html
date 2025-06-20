@@ -1106,7 +1106,7 @@ tbody tr:hover {
           <span>로그인</span>
         </button>
         
-        <button type="button" class="btn btn-secondary">
+        <button type="button" class="btn btn-secondary" onclick="showRegister()">
           <span class="material-icons">person_add</span>
           <span>회원가입</span>
         </button>
@@ -1218,7 +1218,7 @@ tbody tr:hover {
           <span>가입하기</span>
         </button>
         
-        <button type="button" class="btn btn-secondary">
+        <button type="button" class="btn btn-secondary" onclick="showLogin()">
           <span class="material-icons">arrow_back</span>
           <span>로그인으로 돌아가기</span>
         </button>
@@ -1242,11 +1242,11 @@ tbody tr:hover {
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
           
-          <button class="btn-icon" title="비밀번호 변경">
+          <button class="btn-icon" title="비밀번호 변경" onclick="showChangePasswordModal()">
             <span class="material-icons">lock</span>
           </button>
           
-          <button class="btn-icon" title="로그아웃">
+          <button class="btn-icon" title="로그아웃" onclick="logout()">
             <span class="material-icons">logout</span>
           </button>
         </div>
@@ -1256,47 +1256,47 @@ tbody tr:hover {
     <!-- 사이드바 -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-menu">
-        <a class="menu-item active">
+        <a class="menu-item active" onclick="showPage('dashboard')">
           <span class="material-icons menu-icon">dashboard</span>
           <span>대시보드</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('members')">
           <span class="material-icons menu-icon">people</span>
           <span>길드원 목록</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('boss-record')">
           <span class="material-icons menu-icon">add_circle</span>
           <span>보스참여 등록</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('boss-history')">
           <span class="material-icons menu-icon">history</span>
           <span>보스참여 히스토리</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('item-sales')">
           <span class="material-icons menu-icon">sell</span>
           <span>아이템 판매/분배</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('guild-funds')">
           <span class="material-icons menu-icon">account_balance</span>
           <span>길드 자금 관리</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('distribution')">
           <span class="material-icons menu-icon">payments</span>
           <span>주급 분배</span>
         </a>
         
-        <a class="menu-item">
+        <a class="menu-item" onclick="showPage('statistics')">
           <span class="material-icons menu-icon">bar_chart</span>
           <span>통계/보고서</span>
         </a>
         
-        <a class="menu-item admin-only" style="display: none;">
+        <a class="menu-item admin-only" style="display: none;" onclick="showPage('admin')">
           <span class="material-icons menu-icon">admin_panel_settings</span>
           <span>관리자 설정</span>
         </a>
@@ -1311,7 +1311,7 @@ tbody tr:hover {
     </main>
 
     <!-- 모바일 메뉴 토글 버튼 -->
-    <button class="mobile-menu-toggle">
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
       <span class="material-icons">menu</span>
     </button>
   </div>
@@ -1321,7 +1321,7 @@ tbody tr:hover {
     <div class="modal-content">
       <div class="modal-header">
         <h3>비밀번호 변경</h3>
-        <button class="close-btn">×</button>
+        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
       </div>
       
       <form id="changePasswordForm">
@@ -1341,7 +1341,7 @@ tbody tr:hover {
         </div>
         
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary">취소</button>
+          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">취소</button>
           <button type="submit" class="btn btn-primary">비밀번호 변경</button>
         </div>
       </form>
@@ -1529,29 +1529,72 @@ function setupFormEventListeners() {
         loginForm.addEventListener('submit', handleLogin);
     }
     
-    // 간단한 회원가입 토글
-    var registerBtns = document.querySelectorAll('.btn-secondary');
-    for (var i = 0; i < registerBtns.length; i++) {
-        registerBtns[i].removeEventListener('click', toggleForms);
-        registerBtns[i].addEventListener('click', toggleForms);
+    var registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.removeEventListener('submit', handleRegister);
+        registerForm.addEventListener('submit', handleRegister);
+        
+        // 비밀번호 확인 실시간 검증
+        var regPassword = document.getElementById('regPassword');
+        var regPasswordConfirm = document.getElementById('regPasswordConfirm');
+        
+        if (regPassword && regPasswordConfirm) {
+            regPasswordConfirm.addEventListener('input', checkPasswordMatch);
+            regPassword.addEventListener('input', checkPasswordMatch);
+        }
+    }
+    
+    var changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.removeEventListener('submit', handleChangePassword);
+        changePasswordForm.addEventListener('submit', handleChangePassword);
     }
 }
 
-function toggleForms(e) {
-    e.preventDefault();
-    
+// ===== 로그인/회원가입 토글 =====
+function showRegister() {
     var loginForm = document.getElementById('loginForm');
     var registerForm = document.getElementById('registerForm');
     
     if (loginForm && registerForm) {
-        if (loginForm.style.display === 'none') {
-            // 회원가입 → 로그인
-            registerForm.style.display = 'none';
-            loginForm.style.display = 'block';
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        
+        // 폼 초기화
+        registerForm.reset();
+        checkPasswordMatch();
+    }
+}
+
+function showLogin() {
+    var registerForm = document.getElementById('registerForm');
+    var loginForm = document.getElementById('loginForm');
+    
+    if (registerForm && loginForm) {
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+        
+        // 폼 초기화
+        loginForm.reset();
+    }
+}
+
+// ===== 비밀번호 확인 검증 =====
+function checkPasswordMatch() {
+    var password = document.getElementById('regPassword');
+    var passwordConfirm = document.getElementById('regPasswordConfirm');
+    var mismatchDiv = document.getElementById('passwordMismatch');
+    var submitBtn = document.getElementById('registerSubmitBtn');
+    
+    if (password && passwordConfirm && mismatchDiv && submitBtn) {
+        if (passwordConfirm.value && password.value !== passwordConfirm.value) {
+            mismatchDiv.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
         } else {
-            // 로그인 → 회원가입
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
+            mismatchDiv.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
         }
     }
 }
@@ -1610,6 +1653,165 @@ function onLoginError(error) {
     showMessage('로그인 중 오류가 발생했습니다: ' + (error.message || error), 'error');
 }
 
+// ===== 회원가입 처리 =====
+function handleRegister(e) {
+    e.preventDefault();
+    
+    var nickname = document.getElementById('regNickname').value.trim();
+    var guild = document.getElementById('regGuild').value.trim();
+    var server = document.getElementById('regServer').value.trim();
+    var job = document.getElementById('regJob').value.trim();
+    var password = document.getElementById('regPassword').value;
+    var passwordConfirm = document.getElementById('regPasswordConfirm').value;
+    
+    // 기본 검증
+    if (!nickname || !guild || !server || !job || !password || !passwordConfirm) {
+        showMessage('모든 필드를 입력해주세요.', 'warning');
+        return;
+    }
+    
+    // 닉네임 길이 체크
+    if (nickname.length < 2 || nickname.length > 20) {
+        showMessage('닉네임은 2-20자 사이로 입력해주세요.', 'warning');
+        return;
+    }
+    
+    // 비밀번호 길이 체크
+    if (password.length < 6) {
+        showMessage('비밀번호는 6자 이상이어야 합니다.', 'warning');
+        return;
+    }
+    
+    // 비밀번호 확인
+    if (password !== passwordConfirm) {
+        showMessage('비밀번호가 일치하지 않습니다.', 'warning');
+        return;
+    }
+    
+    showLoader();
+    
+    var userData = {
+        nickname: nickname,
+        guild: guild,
+        server: server,
+        job: job,
+        password: password
+    };
+    
+    var registerRunner = safeGoogleScriptRun('register', onRegisterSuccess, onRegisterError);
+    if (registerRunner) {
+        registerRunner(userData);
+    } else {
+        hideLoader();
+        showMessage('시스템에 연결할 수 없습니다.', 'error');
+    }
+}
+
+function onRegisterSuccess(result) {
+    hideLoader();
+    
+    if (result && result.success) {
+        // 회원 목록 캐시 무효화
+        membersCache = null;
+        
+        // 성공 메시지 표시
+        showMessage(result.message, 'success');
+        
+        // 폼 초기화
+        document.getElementById('registerForm').reset();
+        
+        // 로그인 폼으로 전환
+        showLogin();
+        
+        // 회원가입한 닉네임을 로그인 폼에 자동 입력
+        if (result.newMember && result.newMember.nickname) {
+            document.getElementById('loginNickname').value = result.newMember.nickname;
+            var passwordField = document.getElementById('loginPassword');
+            if (passwordField) {
+                passwordField.focus();
+            }
+        }
+        
+    } else {
+        showMessage('회원가입 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
+    }
+}
+
+function onRegisterError(error) {
+    hideLoader();
+    showMessage('회원가입 중 오류가 발생했습니다: ' + (error.message || error), 'error');
+}
+
+// ===== 비밀번호 변경 기능 =====
+function showChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function closeChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    
+    var currentPassword = document.getElementById('currentPassword').value;
+    var newPassword = document.getElementById('newPassword').value;
+    var newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
+    
+    if (!currentPassword || !newPassword || !newPasswordConfirm) {
+        showMessage('모든 필드를 입력해주세요.', 'warning');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        showMessage('새 비밀번호는 6자 이상이어야 합니다.', 'warning');
+        return;
+    }
+    
+    if (newPassword !== newPasswordConfirm) {
+        showMessage('새 비밀번호가 일치하지 않습니다.', 'warning');
+        return;
+    }
+    
+    if (currentPassword === newPassword) {
+        showMessage('새 비밀번호는 현재 비밀번호와 달라야 합니다.', 'warning');
+        return;
+    }
+    
+    showLoader();
+    
+    var changePasswordRunner = safeGoogleScriptRun('changePassword', 
+        function(result) {
+            hideLoader();
+            if (result && result.success) {
+                showMessage('비밀번호가 성공적으로 변경되었습니다.', 'success');
+                closeChangePasswordModal();
+            } else {
+                showMessage('비밀번호 변경 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
+            }
+        },
+        function(error) {
+            hideLoader();
+            showMessage('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error), 'error');
+        }
+    );
+    
+    if (changePasswordRunner) {
+        changePasswordRunner(currentUser.id, currentPassword, newPassword);
+    } else {
+        hideLoader();
+        showMessage('시스템에 연결할 수 없습니다.', 'error');
+    }
+}
+
 // ===== 앱 화면 표시 =====
 function showApp() {
     if (!currentUser) {
@@ -1654,75 +1856,9 @@ function showApp() {
         }
     }
     
-    setupAppEventListeners();
+    setupFormEventListeners();
     console.log('✅ 앱 화면 표시 완료');
     showPage('dashboard');
-}
-
-// ===== 앱 이벤트 리스너 설정 =====
-function setupAppEventListeners() {
-    // 메뉴 클릭 이벤트
-    var menuItems = document.querySelectorAll('.menu-item');
-    for (var i = 0; i < menuItems.length; i++) {
-        menuItems[i].addEventListener('click', function() {
-            var text = this.textContent.trim();
-            console.log('메뉴 클릭:', text);
-            
-            // 메뉴 활성화 표시
-            var allMenus = document.querySelectorAll('.menu-item');
-            for (var j = 0; j < allMenus.length; j++) {
-                allMenus[j].classList.remove('active');
-            }
-            this.classList.add('active');
-            
-            // 페이지 로드
-            switch(text) {
-                case '대시보드':
-                    showPage('dashboard');
-                    break;
-                case '길드원 목록':
-                    showPage('members');
-                    break;
-                case '보스참여 등록':
-                    showPage('boss-record');
-                    break;
-                case '보스참여 히스토리':
-                    showPage('boss-history');
-                    break;
-                case '아이템 판매/분배':
-                    showPage('item-sales');
-                    break;
-                case '길드 자금 관리':
-                    showPage('guild-funds');
-                    break;
-                case '주급 분배':
-                    showPage('distribution');
-                    break;
-                case '통계/보고서':
-                    showPage('statistics');
-                    break;
-                case '관리자 설정':
-                    showPage('admin');
-                    break;
-                default:
-                    showPage('dashboard');
-            }
-        });
-    }
-    
-    // 로그아웃 버튼
-    var logoutBtns = document.querySelectorAll('.btn-icon');
-    for (var i = 0; i < logoutBtns.length; i++) {
-        if (logoutBtns[i].querySelector('.material-icons').textContent === 'logout') {
-            logoutBtns[i].addEventListener('click', logout);
-        }
-    }
-    
-    // 모바일 메뉴 토글
-    var mobileToggle = document.querySelector('.mobile-menu-toggle');
-    if (mobileToggle) {
-        mobileToggle.addEventListener('click', toggleSidebar);
-    }
 }
 
 // ===== 로그아웃 =====
@@ -1767,6 +1903,18 @@ function showPage(page) {
     
     console.log('📄 페이지 전환:', page);
     currentPage = page;
+    
+    // 메뉴 활성화 상태 업데이트
+    var menuItems = document.querySelectorAll('.menu-item');
+    for (var i = 0; i < menuItems.length; i++) {
+        menuItems[i].classList.remove('active');
+    }
+    
+    // 클릭된 메뉴 활성화
+    var targetMenu = document.querySelector('.menu-item[onclick*="' + page + '"]');
+    if (targetMenu) {
+        targetMenu.classList.add('active');
+    }
     
     switch(page) {
         case 'dashboard':
