@@ -1106,7 +1106,7 @@ tbody tr:hover {
           <span>로그인</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" onclick="showRegister()">
+        <button type="button" class="btn btn-secondary" id="showRegisterBtn">
           <span class="material-icons">person_add</span>
           <span>회원가입</span>
         </button>
@@ -1218,7 +1218,7 @@ tbody tr:hover {
           <span>가입하기</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" onclick="showLogin()">
+        <button type="button" class="btn btn-secondary" id="showLoginBtn">
           <span class="material-icons">arrow_back</span>
           <span>로그인으로 돌아가기</span>
         </button>
@@ -1242,11 +1242,11 @@ tbody tr:hover {
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
           
-          <button class="btn-icon" title="비밀번호 변경" onclick="showChangePasswordModal()">
+          <button class="btn-icon" title="비밀번호 변경" id="changePasswordBtn">
             <span class="material-icons">lock</span>
           </button>
           
-          <button class="btn-icon" title="로그아웃" onclick="logout()">
+          <button class="btn-icon" title="로그아웃" id="logoutBtn">
             <span class="material-icons">logout</span>
           </button>
         </div>
@@ -1256,47 +1256,47 @@ tbody tr:hover {
     <!-- 사이드바 -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-menu">
-        <a class="menu-item active" onclick="showPage('dashboard')">
+        <a class="menu-item active" data-page="dashboard">
           <span class="material-icons menu-icon">dashboard</span>
           <span>대시보드</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('members')">
+        <a class="menu-item" data-page="members">
           <span class="material-icons menu-icon">people</span>
           <span>길드원 목록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-record')">
+        <a class="menu-item" data-page="boss-record">
           <span class="material-icons menu-icon">add_circle</span>
           <span>보스참여 등록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-history')">
+        <a class="menu-item" data-page="boss-history">
           <span class="material-icons menu-icon">history</span>
           <span>보스참여 히스토리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('item-sales')">
+        <a class="menu-item" data-page="item-sales">
           <span class="material-icons menu-icon">sell</span>
           <span>아이템 판매/분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('guild-funds')">
+        <a class="menu-item" data-page="guild-funds">
           <span class="material-icons menu-icon">account_balance</span>
           <span>길드 자금 관리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('distribution')">
+        <a class="menu-item" data-page="distribution">
           <span class="material-icons menu-icon">payments</span>
           <span>주급 분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('statistics')">
+        <a class="menu-item" data-page="statistics">
           <span class="material-icons menu-icon">bar_chart</span>
           <span>통계/보고서</span>
         </a>
         
-        <a class="menu-item admin-only" style="display: none;" onclick="showPage('admin')">
+        <a class="menu-item admin-only" style="display: none;" data-page="admin">
           <span class="material-icons menu-icon">admin_panel_settings</span>
           <span>관리자 설정</span>
         </a>
@@ -1311,7 +1311,7 @@ tbody tr:hover {
     </main>
 
     <!-- 모바일 메뉴 토글 버튼 -->
-    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
       <span class="material-icons">menu</span>
     </button>
   </div>
@@ -1321,7 +1321,7 @@ tbody tr:hover {
     <div class="modal-content">
       <div class="modal-header">
         <h3>비밀번호 변경</h3>
-        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+        <button class="close-btn" id="closePasswordModal">×</button>
       </div>
       
       <form id="changePasswordForm">
@@ -1341,7 +1341,7 @@ tbody tr:hover {
         </div>
         
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">취소</button>
+          <button type="button" class="btn btn-secondary" id="cancelPasswordChange">취소</button>
           <button type="submit" class="btn btn-primary">비밀번호 변경</button>
         </div>
       </form>
@@ -1451,11 +1451,8 @@ function hideLoader() {
 // ===== 메시지 표시 함수 =====
 function showMessage(message, type) {
     type = type || 'info';
-    
-    // 브라우저 알림 대신 콘솔에 표시
     console.log('[' + type.toUpperCase() + ']', message);
     
-    // 필요시 DOM에 메시지 표시
     var messageDiv = document.createElement('div');
     messageDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; padding: 15px; border-radius: 5px; color: white; font-weight: bold; max-width: 300px;';
     
@@ -1487,7 +1484,6 @@ function showMessage(message, type) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 DOMContentLoaded 시작');
     
-    // 저장된 세션 확인
     var savedUser = loadSession();
     if (savedUser) {
         console.log('✅ 저장된 세션 발견:', savedUser.nickname);
@@ -1523,31 +1519,107 @@ function initializeLoginScreen() {
 
 // ===== 폼 이벤트 리스너 설정 =====
 function setupFormEventListeners() {
+    // 로그인 폼
     var loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.removeEventListener('submit', handleLogin);
         loginForm.addEventListener('submit', handleLogin);
     }
     
+    // 회원가입 폼
     var registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.removeEventListener('submit', handleRegister);
         registerForm.addEventListener('submit', handleRegister);
-        
-        // 비밀번호 확인 실시간 검증
-        var regPassword = document.getElementById('regPassword');
-        var regPasswordConfirm = document.getElementById('regPasswordConfirm');
-        
-        if (regPassword && regPasswordConfirm) {
-            regPasswordConfirm.addEventListener('input', checkPasswordMatch);
-            regPassword.addEventListener('input', checkPasswordMatch);
-        }
     }
     
+    // 비밀번호 변경 폼
     var changePasswordForm = document.getElementById('changePasswordForm');
     if (changePasswordForm) {
         changePasswordForm.removeEventListener('submit', handleChangePassword);
         changePasswordForm.addEventListener('submit', handleChangePassword);
+    }
+    
+    // 회원가입 표시 버튼
+    var showRegisterBtn = document.getElementById('showRegisterBtn');
+    if (showRegisterBtn) {
+        showRegisterBtn.removeEventListener('click', showRegister);
+        showRegisterBtn.addEventListener('click', showRegister);
+    }
+    
+    // 로그인 표시 버튼
+    var showLoginBtn = document.getElementById('showLoginBtn');
+    if (showLoginBtn) {
+        showLoginBtn.removeEventListener('click', showLogin);
+        showLoginBtn.addEventListener('click', showLogin);
+    }
+    
+    // 비밀번호 확인 실시간 검증
+    var regPassword = document.getElementById('regPassword');
+    var regPasswordConfirm = document.getElementById('regPasswordConfirm');
+    
+    if (regPassword && regPasswordConfirm) {
+        regPasswordConfirm.removeEventListener('input', checkPasswordMatch);
+        regPassword.removeEventListener('input', checkPasswordMatch);
+        regPasswordConfirm.addEventListener('input', checkPasswordMatch);
+        regPassword.addEventListener('input', checkPasswordMatch);
+    }
+    
+    // 앱 내 버튼들
+    setupAppEventListeners();
+}
+
+// ===== 앱 이벤트 리스너 설정 =====
+function setupAppEventListeners() {
+    // 메뉴 클릭 이벤트
+    var menuItems = document.querySelectorAll('.menu-item');
+    for (var i = 0; i < menuItems.length; i++) {
+        menuItems[i].removeEventListener('click', handleMenuClick);
+        menuItems[i].addEventListener('click', handleMenuClick);
+    }
+    
+    // 로그아웃 버튼
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.removeEventListener('click', logout);
+        logoutBtn.addEventListener('click', logout);
+    }
+    
+    // 비밀번호 변경 버튼
+    var changePasswordBtn = document.getElementById('changePasswordBtn');
+    if (changePasswordBtn) {
+        changePasswordBtn.removeEventListener('click', showChangePasswordModal);
+        changePasswordBtn.addEventListener('click', showChangePasswordModal);
+    }
+    
+    // 모바일 메뉴 토글
+    var mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.removeEventListener('click', toggleSidebar);
+        mobileMenuToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    // 모달 닫기 버튼들
+    var closePasswordModal = document.getElementById('closePasswordModal');
+    var cancelPasswordChange = document.getElementById('cancelPasswordChange');
+    
+    if (closePasswordModal) {
+        closePasswordModal.removeEventListener('click', closeChangePasswordModal);
+        closePasswordModal.addEventListener('click', closeChangePasswordModal);
+    }
+    
+    if (cancelPasswordChange) {
+        cancelPasswordChange.removeEventListener('click', closeChangePasswordModal);
+        cancelPasswordChange.addEventListener('click', closeChangePasswordModal);
+    }
+}
+
+// ===== 메뉴 클릭 처리 =====
+function handleMenuClick(e) {
+    e.preventDefault();
+    var page = this.getAttribute('data-page');
+    if (page) {
+        showPage(page);
     }
 }
 
@@ -1559,8 +1631,6 @@ function showRegister() {
     if (loginForm && registerForm) {
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
-        
-        // 폼 초기화
         registerForm.reset();
         checkPasswordMatch();
     }
@@ -1573,8 +1643,6 @@ function showLogin() {
     if (registerForm && loginForm) {
         registerForm.style.display = 'none';
         loginForm.style.display = 'block';
-        
-        // 폼 초기화
         loginForm.reset();
     }
 }
@@ -1664,25 +1732,21 @@ function handleRegister(e) {
     var password = document.getElementById('regPassword').value;
     var passwordConfirm = document.getElementById('regPasswordConfirm').value;
     
-    // 기본 검증
     if (!nickname || !guild || !server || !job || !password || !passwordConfirm) {
         showMessage('모든 필드를 입력해주세요.', 'warning');
         return;
     }
     
-    // 닉네임 길이 체크
     if (nickname.length < 2 || nickname.length > 20) {
         showMessage('닉네임은 2-20자 사이로 입력해주세요.', 'warning');
         return;
     }
     
-    // 비밀번호 길이 체크
     if (password.length < 6) {
         showMessage('비밀번호는 6자 이상이어야 합니다.', 'warning');
         return;
     }
     
-    // 비밀번호 확인
     if (password !== passwordConfirm) {
         showMessage('비밀번호가 일치하지 않습니다.', 'warning');
         return;
@@ -1711,19 +1775,12 @@ function onRegisterSuccess(result) {
     hideLoader();
     
     if (result && result.success) {
-        // 회원 목록 캐시 무효화
         membersCache = null;
-        
-        // 성공 메시지 표시
         showMessage(result.message, 'success');
         
-        // 폼 초기화
         document.getElementById('registerForm').reset();
-        
-        // 로그인 폼으로 전환
         showLogin();
         
-        // 회원가입한 닉네임을 로그인 폼에 자동 입력
         if (result.newMember && result.newMember.nickname) {
             document.getElementById('loginNickname').value = result.newMember.nickname;
             var passwordField = document.getElementById('loginPassword');
@@ -1904,16 +1961,12 @@ function showPage(page) {
     console.log('📄 페이지 전환:', page);
     currentPage = page;
     
-    // 메뉴 활성화 상태 업데이트
     var menuItems = document.querySelectorAll('.menu-item');
     for (var i = 0; i < menuItems.length; i++) {
         menuItems[i].classList.remove('active');
-    }
-    
-    // 클릭된 메뉴 활성화
-    var targetMenu = document.querySelector('.menu-item[onclick*="' + page + '"]');
-    if (targetMenu) {
-        targetMenu.classList.add('active');
+        if (menuItems[i].getAttribute('data-page') === page) {
+            menuItems[i].classList.add('active');
+        }
     }
     
     switch(page) {
@@ -1957,7 +2010,7 @@ function loadDashboard() {
         function(html) {
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
-                contentWrapper.innerHTML = html || '<div class="page-header"><h1>대시보드</h1><p>대시보드를 준비 중입니다.</p></div>';
+                contentWrapper.innerHTML = html || getDashboardDefaultHTML();
             }
             hideLoader();
         }, 
@@ -1965,7 +2018,7 @@ function loadDashboard() {
             hideLoader();
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
-                contentWrapper.innerHTML = '<div class="page-header"><h1>대시보드</h1><p>데이터를 불러오는 중 오류가 발생했습니다.</p></div>';
+                contentWrapper.innerHTML = getDashboardDefaultHTML();
             }
         }
     );
@@ -1976,9 +2029,13 @@ function loadDashboard() {
         hideLoader();
         var contentWrapper = document.getElementById('contentWrapper');
         if (contentWrapper) {
-            contentWrapper.innerHTML = '<div class="page-header"><h1>대시보드</h1><p>대시보드를 준비 중입니다.</p></div>';
+            contentWrapper.innerHTML = getDashboardDefaultHTML();
         }
     }
+}
+
+function getDashboardDefaultHTML() {
+    return '<div class="page-header"><h1 class="page-title">대시보드</h1><p class="page-subtitle">길드 활동 현황을 한눈에 확인하세요</p></div><div class="card"><p>대시보드 데이터를 불러오는 중입니다...</p></div>';
 }
 
 // ===== 길드원 목록 로드 =====
@@ -2058,7 +2115,7 @@ function getMembersPageHTML() {
             <div class="card-header">
                 <h3>길드원 목록</h3>
                 <div class="header-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="forceRefreshMembersData()">
+                    <button class="btn btn-sm btn-secondary" id="refreshMembersBtn">
                         <span class="material-icons">refresh</span>
                         새로고침
                     </button>
@@ -2125,6 +2182,12 @@ function loadMembersData() {
             hideLoader();
             displayMembersTable(members);
             updateMembersStats(members);
+            
+            // 새로고침 버튼 이벤트 추가
+            var refreshBtn = document.getElementById('refreshMembersBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', forceRefreshMembersData);
+            }
         }, 
         function(error) {
             console.log('❌ 길드원 데이터 로드 실패:', error);
@@ -2158,11 +2221,8 @@ function displayMembersTable(members) {
     
     var html = '';
     
-    console.log('🔄 회원 데이터 렌더링 시작');
-    
     for (var i = 0; i < members.length; i++) {
         var member = members[i];
-        console.log('👤 처리 중:', member.nickname);
         
         var nickname = member.nickname || 'Unknown';
         var guild = member.guild || '-';
@@ -2175,14 +2235,13 @@ function displayMembersTable(members) {
         var isAdmin = member.isAdmin ? '관리자' : '일반회원';
         
         var statusClass = status === '활성' ? 'active' : 'inactive';
-        var rowClass = 'member-row';
         
         var totalParticipation = members.reduce(function(sum, m) { return sum + (m.participationCount || 0); }, 0);
         var participationRate = totalParticipation > 0 ? Math.round((participationCount / totalParticipation) * 100) : 0;
         
         var jobColor = getJobColor(job);
         
-        html += '<tr class="' + rowClass + '" data-status="' + status + '" data-job="' + job + '">' +
+        html += '<tr class="member-row" data-status="' + status + '" data-job="' + job + '">' +
             '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
             '<td>' +
                 '<div class="member-name-cell">' +
@@ -2211,14 +2270,11 @@ function displayMembersTable(members) {
         '</tr>';
     }
     
-    console.log('✅ HTML 생성 완료, DOM 업데이트 중');
     tbody.innerHTML = html;
     console.log('✅ 회원 테이블 표시 완료');
 }
 
 function updateMembersStats(members) {
-    console.log('📊 회원 통계 업데이트');
-    
     var total = members ? members.length : 0;
     var active = members ? members.filter(function(m) { return m.status === '활성'; }).length : 0;
     var inactive = total - active;
@@ -2230,9 +2286,6 @@ function updateMembersStats(members) {
         var element = document.getElementById(id);
         if (element) {
             element.textContent = text;
-            console.log('📊', id, ':', text);
-        } else {
-            console.log('⚠️', id, '요소를 찾을 수 없음');
         }
     }
     
@@ -2243,19 +2296,13 @@ function updateMembersStats(members) {
 }
 
 function displayEmptyMembersMessage() {
-    console.log('📭 빈 회원 목록 메시지 표시');
-    
     var tbody = document.getElementById('membersTableBody');
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
             '<div class="empty-members">' +
                 '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people_outline</span>' +
                 '<p><strong>등록된 길드원이 없습니다</strong></p>' +
-                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">새로 가입한 회원이 있다면 아래 버튼을 눌러보세요.</p>' +
-                '<div style="margin-top: 20px;">' +
-                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">길드원 목록 새로고침</button>' +
-                    '<button class="btn btn-secondary" onclick="createTestDataNow(); return false;">테스트 데이터 생성</button>' +
-                '</div>' +
+                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">새로 가입한 회원이 있다면 새로고침 버튼을 눌러보세요.</p>' +
             '</div>' +
         '</td></tr>';
     }
@@ -2264,8 +2311,6 @@ function displayEmptyMembersMessage() {
 }
 
 function displayErrorMessage(message) {
-    console.log('❌ 오류 메시지 표시:', message);
-    
     var tbody = document.getElementById('membersTableBody');
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
@@ -2273,10 +2318,6 @@ function displayErrorMessage(message) {
                 '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px; color: #f44336;">error</span>' +
                 '<p style="color: #f44336; font-weight: 500;"><strong>오류가 발생했습니다</strong></p>' +
                 '<p style="font-size: 14px; margin: 8px 0;">' + message + '</p>' +
-                '<div style="margin-top: 20px;">' +
-                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">다시 시도</button>' +
-                    '<button class="btn btn-secondary" onclick="loadMembers(); return false;">페이지 새로고침</button>' +
-                '</div>' +
             '</div>' +
         '</td></tr>';
     }
@@ -2303,10 +2344,6 @@ function forceRefreshMembersData() {
                 showMessage('길드원 목록이 새로고침되었습니다.', 'success');
             } else {
                 displayEmptyMembersMessage();
-                
-                if (confirm('등록된 회원이 없습니다.\n테스트 데이터를 생성하시겠습니까?')) {
-                    createTestDataNow();
-                }
             }
         }, 
         function(error) {
@@ -2318,39 +2355,6 @@ function forceRefreshMembersData() {
     
     if (refreshRunner) {
         refreshRunner();
-    } else {
-        hideLoader();
-        showMessage('시스템에 연결할 수 없습니다.', 'error');
-    }
-}
-
-function createTestDataNow() {
-    console.log('🧪 테스트 데이터 생성 시작');
-    showLoader();
-    
-    var testDataRunner = safeGoogleScriptRun('setupCompleteTestEnvironment', 
-        function(result) {
-            hideLoader();
-            
-            if (result && result.success) {
-                showMessage(result.message, 'success');
-                
-                membersCache = null;
-                setTimeout(function() {
-                    loadMembersData();
-                }, 1000);
-            } else {
-                showMessage('테스트 데이터 생성 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
-            }
-        }, 
-        function(error) {
-            hideLoader();
-            showMessage('테스트 데이터 생성 실패: ' + (error.message || error), 'error');
-        }
-    );
-    
-    if (testDataRunner) {
-        testDataRunner();
     } else {
         hideLoader();
         showMessage('시스템에 연결할 수 없습니다.', 'error');
@@ -2373,46 +2377,46 @@ function getJobColor(job) {
     return jobColors[job] || '#718096';
 }
 
-// ===== 기타 페이지 로드 함수들 (간소화) =====
+// ===== 기타 페이지 로드 함수들 =====
 function loadBossRecord() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>보스 참여 등록</h1><p>보스 참여 등록 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">보스 참여 등록</h1><p class="page-subtitle">보스 레이드 참여자를 등록하세요</p></div><div class="card"><p>보스 참여 등록 페이지는 준비 중입니다.</p></div>';
     }
 }
 
 function loadItemSales() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>아이템 판매/분배</h1><p>아이템 판매/분배 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">아이템 판매/분배</h1><p class="page-subtitle">획득한 아이템을 판매하고 분배하세요</p></div><div class="card"><p>아이템 판매/분배 페이지는 준비 중입니다.</p></div>';
     }
 }
 
 function loadGuildFunds() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>길드 자금 관리</h1><p>길드 자금 관리 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">길드 자금 관리</h1><p class="page-subtitle">길드 자금을 관리하고 거래내역을 확인하세요</p></div><div class="card"><p>길드 자금 관리 페이지는 준비 중입니다.</p></div>';
     }
 }
 
 function loadBossHistory() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>보스참여 히스토리</h1><p>보스참여 히스토리 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">보스참여 히스토리</h1><p class="page-subtitle">보스별 참여율 및 참여자 통계</p></div><div class="card"><p>보스참여 히스토리 페이지는 준비 중입니다.</p></div>';
     }
 }
 
 function loadDistribution() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>주급 분배</h1><p>주급 분배 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">주급 분배</h1><p class="page-subtitle">참여율에 따라 주급을 분배하세요</p></div><div class="card"><p>주급 분배 페이지는 준비 중입니다.</p></div>';
     }
 }
 
 function loadStatistics() { 
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>통계/보고서</h1><p>통계/보고서 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">통계/보고서</h1><p class="page-subtitle">길드 활동 통계를 확인하세요</p></div><div class="card"><p>통계/보고서 페이지는 준비 중입니다.</p></div>';
     }
 }
 
@@ -2424,7 +2428,7 @@ function loadAdmin() {
     
     var contentWrapper = document.getElementById('contentWrapper');
     if (contentWrapper) {
-        contentWrapper.innerHTML = '<div class="page-header"><h1>관리자 설정</h1><p>관리자 설정 페이지는 준비 중입니다.</p></div>';
+        contentWrapper.innerHTML = '<div class="page-header"><h1 class="page-title">관리자 설정</h1><p class="page-subtitle">시스템 관리 및 설정</p></div><div class="card"><p>관리자 설정 페이지는 준비 중입니다.</p></div>';
     }
 }
 
@@ -2449,11 +2453,6 @@ function onError(error) {
     console.log('❌ 오류 발생:', error);
     showMessage('오류가 발생했습니다: ' + (error.message || error), 'error');
 }
-
-// ===== 전역 함수로 노출 (HTML에서 사용) =====
-window.forceRefreshMembersData = forceRefreshMembersData;
-window.createTestDataNow = createTestDataNow;
-window.loadMembers = loadMembers;
   </script>
 </body>
 </html>
