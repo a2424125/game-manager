@@ -11,7 +11,6 @@
   <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   
-  <!-- Embedded Styles -->
   <style>
 :root {
     --primary-color: #00BCD4;
@@ -43,7 +42,6 @@ body {
     line-height: 1.6;
 }
 
-/* ===== 가장 중요한 부분: 초기 숨김 처리 ===== */
 #appContainer {
     display: none !important;
     visibility: hidden !important;
@@ -57,7 +55,6 @@ body {
     transition: opacity 0.3s ease;
 }
 
-/* 로그인 컨테이너는 항상 표시 가능 */
 #loginContainer {
     display: flex;
 }
@@ -66,7 +63,6 @@ body.logged-in #loginContainer {
     display: none !important;
 }
 
-/* ===== 애니메이션 ===== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -76,12 +72,6 @@ body.logged-in #loginContainer {
     to { transform: rotate(360deg); }
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* 로딩 스피너 */
 .loader {
     position: fixed;
     top: 0;
@@ -104,7 +94,6 @@ body.logged-in #loginContainer {
     animation: spin 1s linear infinite;
 }
 
-/* 로그인 화면 */
 .login-container {
     display: flex;
     justify-content: center;
@@ -141,7 +130,6 @@ body.logged-in #loginContainer {
     font-size: 14px;
 }
 
-/* 폼 스타일 */
 .form-group {
     margin-bottom: 20px;
 }
@@ -176,7 +164,6 @@ body.logged-in #loginContainer {
     opacity: 0.5;
 }
 
-/* 폼 힌트 및 에러 메시지 */
 .form-hint {
     display: block;
     margin-top: 4px;
@@ -198,7 +185,6 @@ body.logged-in #loginContainer {
     font-size: 14px;
 }
 
-/* select 요소 특별 스타일 */
 select.form-input {
     cursor: pointer;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="%23666" d="M6 8L2 4h8z"/></svg>');
@@ -210,7 +196,6 @@ select.form-input {
     -moz-appearance: none;
 }
 
-/* optgroup 스타일 */
 select.form-input optgroup {
     font-weight: 600;
     color: var(--primary-color);
@@ -229,7 +214,6 @@ select.form-input option {
     gap: 20px;
 }
 
-/* 버튼 스타일 */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -282,13 +266,6 @@ select.form-input option {
     font-size: 14px;
 }
 
-.btn-outline {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-}
-
-/* 네비게이션 바 */
 .navbar {
     background: white;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -337,7 +314,6 @@ select.form-input option {
     color: var(--light-text);
 }
 
-/* 사이드바 */
 .sidebar {
     background: white;
     width: 220px;
@@ -383,7 +359,6 @@ select.form-input option {
     font-size: 16px;
 }
 
-/* 메인 콘텐츠 */
 #appContainer.show .main-content {
     margin-left: 220px;
     padding: 14px;
@@ -414,7 +389,6 @@ select.form-input option {
     font-size: 13px;
 }
 
-/* 카드 스타일 */
 .card {
     background: white;
     border-radius: 8px;
@@ -448,7 +422,6 @@ select.form-input option {
     gap: 6px;
 }
 
-/* 대시보드 스타일 */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -473,75 +446,6 @@ select.form-input option {
     box-shadow: var(--shadow-hover);
 }
 
-.stat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-
-.stat-title {
-    font-size: 12px;
-    color: var(--light-text);
-    font-weight: 500;
-    line-height: 1.2;
-}
-
-.stat-badge {
-    font-size: 10px;
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-weight: 500;
-}
-
-.stat-badge.green {
-    background: #DCFCE7;
-    color: #15803D;
-}
-
-.stat-badge.orange {
-    background: #FEF3C7;
-    color: #D97706;
-}
-
-.stat-badge.red {
-    background: #FEE2E2;
-    color: #DC2626;
-}
-
-.stat-value-large {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--dark-text);
-    margin-bottom: 2px;
-    line-height: 1;
-}
-
-.stat-icon-bg {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.1;
-}
-
-.stat-icon-bg.blue { background: #3B82F6; }
-.stat-icon-bg.yellow { background: #F59E0B; }
-.stat-icon-bg.red { background: #EF4444; }
-.stat-icon-bg.purple { background: #8B5CF6; }
-
-.stat-icon-bg .material-icons {
-    font-size: 20px;
-    color: inherit;
-    opacity: 1;
-}
-
-/* ===== 길드원 목록 페이지 스타일 ===== */
 .members-filter-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -577,7 +481,6 @@ select.form-input option {
     border-color: var(--primary-color);
 }
 
-/* 멤버 테이블 스타일 */
 .member-row {
     cursor: pointer;
     transition: background-color 0.2s;
@@ -615,7 +518,6 @@ select.form-input option {
     font-weight: 500;
 }
 
-/* 직업 배지 */
 .job-badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -626,7 +528,6 @@ select.form-input option {
     display: inline-block;
 }
 
-/* 참여 관련 스타일 */
 .participation-cell {
     text-align: center;
 }
@@ -660,7 +561,6 @@ select.form-input option {
     min-width: 30px;
 }
 
-/* 역할 배지 */
 .role-badge {
     padding: 3px 8px;
     border-radius: 12px;
@@ -680,7 +580,6 @@ select.form-input option {
     color: #3730A3;
 }
 
-/* 순위 배지 개선 */
 .rank-badge {
     display: inline-flex;
     align-items: center;
@@ -694,7 +593,6 @@ select.form-input option {
     color: var(--light-text);
 }
 
-/* 상위 3등에 대한 특별 스타일 */
 tr:nth-child(1) .rank-badge {
     background: linear-gradient(135deg, #FFD700, #FFA500);
     color: white;
@@ -710,7 +608,6 @@ tr:nth-child(3) .rank-badge {
     color: white;
 }
 
-/* 통계 카드 개선 */
 .members-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -773,19 +670,6 @@ tr:nth-child(3) .rank-badge {
     color: var(--light-text);
 }
 
-/* 참여율 차트 */
-.participation-chart {
-    padding: 20px;
-    text-align: center;
-    background: #F8FAFC;
-    border-radius: 8px;
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* 빈 상태 메시지 */
 .loading-members, .empty-members, .error-members {
     text-align: center;
     color: var(--light-text);
@@ -799,7 +683,6 @@ tr:nth-child(3) .rank-badge {
     opacity: 0.5;
 }
 
-/* 로딩 애니메이션 개선 */
 .loading-members {
     animation: fadeIn 0.5s ease;
 }
@@ -810,7 +693,6 @@ tr:nth-child(3) .rank-badge {
     opacity: 0.8 !important;
 }
 
-/* ===== 모달 스타일 ===== */
 .modal {
     position: fixed;
     top: 0;
@@ -891,7 +773,6 @@ tr:nth-child(3) .rank-badge {
     min-width: 100px;
 }
 
-/* 비밀번호 변경 모달 특별 스타일 */
 #changePasswordModal .form-group {
     margin-bottom: 16px;
 }
@@ -906,79 +787,6 @@ tr:nth-child(3) .rank-badge {
     margin-bottom: 6px;
 }
 
-/* 배지 스타일 */
-.badge {
-    background: var(--primary-color);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-/* 분배 액션 버튼 */
-.distribution-actions {
-    text-align: center;
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
-    margin-top: 16px;
-    background: #F8FAFC;
-    border-radius: 0 0 12px 12px;
-}
-
-/* 순위 배지 스타일 */
-.rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 600;
-    background: #E2E8F0;
-    color: var(--light-text);
-}
-
-/* 참여자 배지 */
-.participant-badges {
-    display: flex;
-    align-items: center;
-    gap: -4px;
-}
-
-.badge-circle {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    border: 2px solid white;
-    margin-left: -4px;
-}
-
-.badge-circle:first-child {
-    margin-left: 0;
-}
-
-.bg-green { background: #10B981; }
-.bg-yellow { background: #F59E0B; }
-.bg-blue { background: #3B82F6; }
-.bg-purple { background: #8B5CF6; }
-.bg-orange { background: #F97316; }
-
-.badge-more {
-    margin-left: 8px;
-    font-size: 12px;
-    color: var(--light-text);
-    font-weight: 500;
-}
-
-/* 상태 배지 */
 .status-badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -986,16 +794,6 @@ tr:nth-child(3) .rank-badge {
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-}
-
-.status-badge.pending {
-    background: #FEF3C7;
-    color: #D97706;
-}
-
-.status-badge.completed {
-    background: #DCFCE7;
-    color: #15803D;
 }
 
 .status-badge.active {
@@ -1008,7 +806,6 @@ tr:nth-child(3) .rank-badge {
     color: #DC2626;
 }
 
-/* 아이콘 버튼 */
 .btn-icon {
     background: none;
     border: none;
@@ -1029,27 +826,6 @@ tr:nth-child(3) .rank-badge {
     background: #F1F5F9;
 }
 
-.btn-text {
-    background: none;
-    border: none;
-    color: var(--primary-color);
-    font-weight: 500;
-    cursor: pointer;
-    padding: 8px 12px;
-    transition: all 0.2s;
-    border-radius: 6px;
-    font-size: 13px;
-}
-
-.btn-text:hover {
-    background: #EBF8FF;
-}
-
-.btn-text.full-width {
-    width: 100%;
-}
-
-/* 테이블 스타일 */
 .table-container {
     overflow-x: auto;
     border-radius: 10px;
@@ -1080,7 +856,6 @@ tbody tr:hover {
     background: #F9F9F9;
 }
 
-/* 모던 테이블 */
 .modern-table {
     width: 100%;
     border-collapse: collapse;
@@ -1110,7 +885,6 @@ tbody tr:hover {
     background: #F8F9FA;
 }
 
-/* 모바일 반응형 */
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1174,10 +948,6 @@ tbody tr:hover {
     .stat-card-new {
         min-height: 75px;
         padding: 10px;
-    }
-    
-    .stat-value-large {
-        font-size: 16px;
     }
     
     .members-stats {
@@ -1283,20 +1053,25 @@ tbody tr:hover {
     display: none;
 }
 
-/* 테이블 셀 정렬 */
-.modern-table td:nth-child(1), /* 순위 */
-.modern-table td:nth-child(8), /* 참여횟수 */
-.modern-table td:nth-child(9)  /* 참여율 */ {
+.modern-table td:nth-child(1),
+.modern-table td:nth-child(8),
+.modern-table td:nth-child(9) {
     text-align: center;
 }
 
-/* 호버 효과 개선 */
 .member-row:hover .member-nickname {
     color: var(--primary-color);
 }
 
 .member-row:hover .rank-badge {
     transform: scale(1.1);
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-left: auto;
 }
   </style>
 </head>
@@ -1331,7 +1106,7 @@ tbody tr:hover {
           <span>로그인</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" onclick="showRegister()">
+        <button type="button" class="btn btn-secondary">
           <span class="material-icons">person_add</span>
           <span>회원가입</span>
         </button>
@@ -1443,7 +1218,7 @@ tbody tr:hover {
           <span>가입하기</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" onclick="showLogin()">
+        <button type="button" class="btn btn-secondary">
           <span class="material-icons">arrow_back</span>
           <span>로그인으로 돌아가기</span>
         </button>
@@ -1467,11 +1242,11 @@ tbody tr:hover {
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
           
-          <button class="btn-icon" onclick="showChangePasswordModal()" title="비밀번호 변경">
+          <button class="btn-icon" title="비밀번호 변경">
             <span class="material-icons">lock</span>
           </button>
           
-          <button class="btn-icon" onclick="logout()" title="로그아웃">
+          <button class="btn-icon" title="로그아웃">
             <span class="material-icons">logout</span>
           </button>
         </div>
@@ -1481,47 +1256,47 @@ tbody tr:hover {
     <!-- 사이드바 -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-menu">
-        <a class="menu-item active" onclick="showPage('dashboard')">
+        <a class="menu-item active">
           <span class="material-icons menu-icon">dashboard</span>
           <span>대시보드</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('members')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">people</span>
           <span>길드원 목록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-record')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">add_circle</span>
           <span>보스참여 등록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-history')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">history</span>
           <span>보스참여 히스토리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('item-sales')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">sell</span>
           <span>아이템 판매/분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('guild-funds')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">account_balance</span>
           <span>길드 자금 관리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('distribution')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">payments</span>
           <span>주급 분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('statistics')">
+        <a class="menu-item">
           <span class="material-icons menu-icon">bar_chart</span>
           <span>통계/보고서</span>
         </a>
         
-        <a class="menu-item admin-only" onclick="showPage('admin')" style="display: none;">
+        <a class="menu-item admin-only" style="display: none;">
           <span class="material-icons menu-icon">admin_panel_settings</span>
           <span>관리자 설정</span>
         </a>
@@ -1536,7 +1311,7 @@ tbody tr:hover {
     </main>
 
     <!-- 모바일 메뉴 토글 버튼 -->
-    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <button class="mobile-menu-toggle">
       <span class="material-icons">menu</span>
     </button>
   </div>
@@ -1546,7 +1321,7 @@ tbody tr:hover {
     <div class="modal-content">
       <div class="modal-header">
         <h3>비밀번호 변경</h3>
-        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+        <button class="close-btn">×</button>
       </div>
       
       <form id="changePasswordForm">
@@ -1566,19 +1341,43 @@ tbody tr:hover {
         </div>
         
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">취소</button>
+          <button type="button" class="btn btn-secondary">취소</button>
           <button type="submit" class="btn btn-primary">비밀번호 변경</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Embedded Script -->
   <script>
 // ===== 전역 변수 =====
 var currentUser = null;
 var currentPage = 'dashboard';
-var membersCache = null; // 회원 목록 캐시
+var membersCache = null;
+var isScriptReady = false;
+
+// ===== 안전한 Google Script 호출 래퍼 =====
+function safeGoogleScriptRun(functionName, successCallback, errorCallback) {
+    try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            var runner = google.script.run;
+            if (successCallback) runner = runner.withSuccessHandler(successCallback);
+            if (errorCallback) runner = runner.withFailureHandler(errorCallback);
+            return runner[functionName];
+        } else {
+            console.warn('Google Script API not available');
+            if (errorCallback) {
+                errorCallback(new Error('Google Script API not available'));
+            }
+            return null;
+        }
+    } catch (e) {
+        console.error('Error calling Google Script:', e);
+        if (errorCallback) {
+            errorCallback(e);
+        }
+        return null;
+    }
+}
 
 // ===== 세션 관리 함수들 =====
 function saveSession(user) {
@@ -1601,7 +1400,6 @@ function loadSession() {
             var timeStamp = parseInt(sessionTime);
             var now = Date.now();
             
-            // 24시간 이내 세션만 유효
             if (now - timeStamp < 24 * 60 * 60 * 1000) {
                 return user;
             } else {
@@ -1635,100 +1433,6 @@ function validateCurrentSession() {
     return true;
 }
 
-// ===== 페이지 로드 시 초기화 =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 DOMContentLoaded 시작');
-    
-    // 저장된 세션 확인 및 자동 로그인
-    var savedUser = loadSession();
-    if (savedUser) {
-        console.log('✅ 저장된 세션 발견:', savedUser.nickname);
-        currentUser = savedUser;
-        showApp();
-        return;
-    }
-    
-    console.log('📝 로그인 화면 초기화');
-    // 로그인 화면 초기화
-    initializeLoginScreen();
-    hideLoader();
-});
-
-function initializeLoginScreen() {
-    // 앱 컨테이너 완전히 숨김
-    var appContainer = document.getElementById('appContainer');
-    if (appContainer) {
-        appContainer.style.display = 'none';
-        appContainer.style.visibility = 'hidden';
-        appContainer.style.opacity = '0';
-        appContainer.classList.remove('show');
-    }
-    
-    // body 클래스 설정
-    document.body.classList.add('not-logged-in');
-    document.body.classList.remove('logged-in');
-    
-    // 로그인 컨테이너 표시
-    var loginContainer = document.getElementById('loginContainer');
-    if (loginContainer) {
-        loginContainer.style.display = 'flex';
-    }
-    
-    // 이벤트 리스너 등록
-    setupFormEventListeners();
-}
-
-// ===== 폼 이벤트 리스너 설정 =====
-function setupFormEventListeners() {
-    var loginForm = document.getElementById('loginForm');
-    var registerForm = document.getElementById('registerForm');
-    var changePasswordForm = document.getElementById('changePasswordForm');
-    
-    if (loginForm) {
-        loginForm.removeEventListener('submit', handleLogin);
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    
-    if (registerForm) {
-        registerForm.removeEventListener('submit', handleRegister);
-        registerForm.addEventListener('submit', handleRegister);
-        
-        // 비밀번호 확인 실시간 검증
-        var regPassword = document.getElementById('regPassword');
-        var regPasswordConfirm = document.getElementById('regPasswordConfirm');
-        
-        if (regPassword && regPasswordConfirm) {
-            regPasswordConfirm.addEventListener('input', checkPasswordMatch);
-            regPassword.addEventListener('input', checkPasswordMatch);
-        }
-    }
-    
-    if (changePasswordForm) {
-        changePasswordForm.removeEventListener('submit', handleChangePassword);
-        changePasswordForm.addEventListener('submit', handleChangePassword);
-    }
-}
-
-// ===== 비밀번호 확인 검증 =====
-function checkPasswordMatch() {
-    var password = document.getElementById('regPassword');
-    var passwordConfirm = document.getElementById('regPasswordConfirm');
-    var mismatchDiv = document.getElementById('passwordMismatch');
-    var submitBtn = document.getElementById('registerSubmitBtn');
-    
-    if (password && passwordConfirm && mismatchDiv && submitBtn) {
-        if (passwordConfirm.value && password.value !== passwordConfirm.value) {
-            mismatchDiv.style.display = 'block';
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-        } else {
-            mismatchDiv.style.display = 'none';
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-        }
-    }
-}
-
 // ===== 로더 관리 =====
 function showLoader() {
     var loader = document.getElementById('loader');
@@ -1744,31 +1448,111 @@ function hideLoader() {
     }
 }
 
-// ===== 로그인/회원가입 토글 =====
-function showRegister() {
+// ===== 메시지 표시 함수 =====
+function showMessage(message, type) {
+    type = type || 'info';
+    
+    // 브라우저 알림 대신 콘솔에 표시
+    console.log('[' + type.toUpperCase() + ']', message);
+    
+    // 필요시 DOM에 메시지 표시
+    var messageDiv = document.createElement('div');
+    messageDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; padding: 15px; border-radius: 5px; color: white; font-weight: bold; max-width: 300px;';
+    
+    switch(type) {
+        case 'success':
+            messageDiv.style.backgroundColor = '#4CAF50';
+            break;
+        case 'error':
+            messageDiv.style.backgroundColor = '#F44336';
+            break;
+        case 'warning':
+            messageDiv.style.backgroundColor = '#FF9800';
+            break;
+        default:
+            messageDiv.style.backgroundColor = '#2196F3';
+    }
+    
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(function() {
+        if (messageDiv.parentNode) {
+            messageDiv.parentNode.removeChild(messageDiv);
+        }
+    }, 3000);
+}
+
+// ===== 페이지 로드 시 초기화 =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 DOMContentLoaded 시작');
+    
+    // 저장된 세션 확인
+    var savedUser = loadSession();
+    if (savedUser) {
+        console.log('✅ 저장된 세션 발견:', savedUser.nickname);
+        currentUser = savedUser;
+        showApp();
+        return;
+    }
+    
+    console.log('📝 로그인 화면 초기화');
+    initializeLoginScreen();
+    hideLoader();
+});
+
+function initializeLoginScreen() {
+    var appContainer = document.getElementById('appContainer');
+    if (appContainer) {
+        appContainer.style.display = 'none';
+        appContainer.style.visibility = 'hidden';
+        appContainer.style.opacity = '0';
+        appContainer.classList.remove('show');
+    }
+    
+    document.body.classList.add('not-logged-in');
+    document.body.classList.remove('logged-in');
+    
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'flex';
+    }
+    
+    setupFormEventListeners();
+}
+
+// ===== 폼 이벤트 리스너 설정 =====
+function setupFormEventListeners() {
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.removeEventListener('submit', handleLogin);
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    // 간단한 회원가입 토글
+    var registerBtns = document.querySelectorAll('.btn-secondary');
+    for (var i = 0; i < registerBtns.length; i++) {
+        registerBtns[i].removeEventListener('click', toggleForms);
+        registerBtns[i].addEventListener('click', toggleForms);
+    }
+}
+
+function toggleForms(e) {
+    e.preventDefault();
+    
     var loginForm = document.getElementById('loginForm');
     var registerForm = document.getElementById('registerForm');
     
     if (loginForm && registerForm) {
-        loginForm.style.display = 'none';
-        registerForm.style.display = 'block';
-        
-        // 폼 초기화
-        registerForm.reset();
-        checkPasswordMatch();
-    }
-}
-
-function showLogin() {
-    var registerForm = document.getElementById('registerForm');
-    var loginForm = document.getElementById('loginForm');
-    
-    if (registerForm && loginForm) {
-        registerForm.style.display = 'none';
-        loginForm.style.display = 'block';
-        
-        // 폼 초기화
-        loginForm.reset();
+        if (loginForm.style.display === 'none') {
+            // 회원가입 → 로그인
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        } else {
+            // 로그인 → 회원가입
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        }
     }
 }
 
@@ -1782,16 +1566,19 @@ function handleLogin(e) {
     
     if (!nickname || !password) {
         hideLoader();
-        alert('닉네임과 비밀번호를 모두 입력해주세요.');
+        showMessage('닉네임과 비밀번호를 모두 입력해주세요.', 'warning');
         return;
     }
     
     console.log('🔐 로그인 시도:', nickname);
     
-    google.script.run
-        .withSuccessHandler(onLoginSuccess)
-        .withFailureHandler(onLoginError)
-        .login(nickname, password);
+    var loginRunner = safeGoogleScriptRun('login', onLoginSuccess, onLoginError);
+    if (loginRunner) {
+        loginRunner(nickname, password);
+    } else {
+        hideLoader();
+        showMessage('시스템에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+    }
 }
 
 function onLoginSuccess(result) {
@@ -1799,191 +1586,28 @@ function onLoginSuccess(result) {
     
     console.log('🔐 로그인 응답:', result);
     
-    if (result.success) {
+    if (result && result.success) {
         currentUser = result.user;
         console.log('✅ 로그인 성공:', currentUser.nickname);
         
-        // 세션 저장
         if (saveSession(currentUser)) {
             console.log('💾 세션 저장 완료');
         }
         
-        // 회원 목록 캐시 초기화
         membersCache = null;
-        
-        // 기본 비밀번호 체크
-        if (currentUser.isAdmin && document.getElementById('loginPassword').value === 'admin123') {
-            if (confirm('보안을 위해 기본 관리자 비밀번호를 변경하는 것을 권장합니다.\n\n지금 비밀번호를 변경하시겠습니까?')) {
-                showApp();
-                setTimeout(function() {
-                    showChangePasswordModal();
-                }, 1000);
-                return;
-            }
-        }
-        
-        // 앱 화면으로 전환
         showApp();
+        showMessage('로그인되었습니다!', 'success');
         
     } else {
-        console.log('❌ 로그인 실패:', result.message);
-        alert('로그인 실패: ' + (result.message || '알 수 없는 오류'));
+        console.log('❌ 로그인 실패:', result ? result.message : '알 수 없는 오류');
+        showMessage('로그인 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
     }
 }
 
 function onLoginError(error) {
     hideLoader();
     console.log('❌ 로그인 오류:', error);
-    alert('로그인 중 오류가 발생했습니다: ' + (error.message || error));
-}
-
-// ===== 회원가입 처리 =====
-function handleRegister(e) {
-    e.preventDefault();
-    
-    var nickname = document.getElementById('regNickname').value.trim();
-    var guild = document.getElementById('regGuild').value.trim();
-    var server = document.getElementById('regServer').value.trim();
-    var job = document.getElementById('regJob').value.trim();
-    var password = document.getElementById('regPassword').value;
-    var passwordConfirm = document.getElementById('regPasswordConfirm').value;
-    
-    // 기본 검증
-    if (!nickname || !guild || !server || !job || !password || !passwordConfirm) {
-        alert('모든 필드를 입력해주세요.');
-        return;
-    }
-    
-    // 닉네임 길이 체크
-    if (nickname.length < 2 || nickname.length > 20) {
-        alert('닉네임은 2-20자 사이로 입력해주세요.');
-        return;
-    }
-    
-    // 비밀번호 길이 체크
-    if (password.length < 6) {
-        alert('비밀번호는 6자 이상이어야 합니다.');
-        return;
-    }
-    
-    // 비밀번호 확인
-    if (password !== passwordConfirm) {
-        alert('비밀번호가 일치하지 않습니다.');
-        return;
-    }
-    
-    showLoader();
-    
-    var userData = {
-        nickname: nickname,
-        guild: guild,
-        server: server,
-        job: job,
-        password: password
-    };
-    
-    google.script.run
-        .withSuccessHandler(onRegisterSuccess)
-        .withFailureHandler(onRegisterError)
-        .register(userData);
-}
-
-function onRegisterSuccess(result) {
-    hideLoader();
-    
-    if (result.success) {
-        // 회원 목록 캐시 무효화
-        membersCache = null;
-        
-        // 성공 메시지 표시
-        alert(result.message);
-        
-        // 폼 초기화
-        document.getElementById('registerForm').reset();
-        
-        // 로그인 폼으로 전환
-        showLogin();
-        
-        // 회원가입한 닉네임을 로그인 폼에 자동 입력
-        if (result.newMember && result.newMember.nickname) {
-            document.getElementById('loginNickname').value = result.newMember.nickname;
-            var passwordField = document.getElementById('loginPassword');
-            if (passwordField) {
-                passwordField.focus();
-            }
-        }
-        
-    } else {
-        alert('회원가입 실패: ' + (result.message || '알 수 없는 오류'));
-    }
-}
-
-function onRegisterError(error) {
-    hideLoader();
-    alert('회원가입 중 오류가 발생했습니다: ' + (error.message || error));
-}
-
-// ===== 비밀번호 변경 기능 =====
-function showChangePasswordModal() {
-    var modal = document.getElementById('changePasswordModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('changePasswordForm').reset();
-    }
-}
-
-function closeChangePasswordModal() {
-    var modal = document.getElementById('changePasswordModal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.getElementById('changePasswordForm').reset();
-    }
-}
-
-function handleChangePassword(e) {
-    e.preventDefault();
-    
-    var currentPassword = document.getElementById('currentPassword').value;
-    var newPassword = document.getElementById('newPassword').value;
-    var newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
-    
-    if (!currentPassword || !newPassword || !newPasswordConfirm) {
-        alert('모든 필드를 입력해주세요.');
-        return;
-    }
-    
-    if (newPassword.length < 6) {
-        alert('새 비밀번호는 6자 이상이어야 합니다.');
-        return;
-    }
-    
-    if (newPassword !== newPasswordConfirm) {
-        alert('새 비밀번호가 일치하지 않습니다.');
-        return;
-    }
-    
-    if (currentPassword === newPassword) {
-        alert('새 비밀번호는 현재 비밀번호와 달라야 합니다.');
-        return;
-    }
-    
-    showLoader();
-    
-    google.script.run
-        .withSuccessHandler(function(result) {
-            hideLoader();
-            if (result.success) {
-                alert('비밀번호가 성공적으로 변경되었습니다.');
-                closeChangePasswordModal();
-            } else {
-                alert('비밀번호 변경 실패: ' + (result.message || '알 수 없는 오류'));
-            }
-        })
-        .withFailureHandler(function(error) {
-            hideLoader();
-            alert('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error));
-        })
-        .changePassword(currentUser.id, currentPassword, newPassword);
+    showMessage('로그인 중 오류가 발생했습니다: ' + (error.message || error), 'error');
 }
 
 // ===== 앱 화면 표시 =====
@@ -1995,17 +1619,14 @@ function showApp() {
     
     console.log('🚀 앱 화면 표시 시작');
     
-    // body 클래스 변경
     document.body.classList.remove('not-logged-in');
     document.body.classList.add('logged-in');
     
-    // 로그인 컨테이너 숨김
     var loginContainer = document.getElementById('loginContainer');
     if (loginContainer) {
         loginContainer.style.display = 'none';
     }
     
-    // 앱 컨테이너 표시
     var appContainer = document.getElementById('appContainer');
     if (appContainer) {
         appContainer.style.display = 'block';
@@ -2014,7 +1635,6 @@ function showApp() {
         appContainer.classList.add('show');
     }
     
-    // 사용자 정보 표시
     var userName = document.getElementById('userName');
     var userRole = document.getElementById('userRole');
     
@@ -2026,7 +1646,6 @@ function showApp() {
         userRole.textContent = currentUser.isAdmin ? '관리자' : '일반 회원';
     }
     
-    // 관리자 메뉴 표시
     if (currentUser.isAdmin) {
         var adminElements = document.querySelectorAll('.admin-only');
         for (var i = 0; i < adminElements.length; i++) {
@@ -2035,29 +1654,88 @@ function showApp() {
         }
     }
     
-    // 이벤트 리스너 재설정
-    setupFormEventListeners();
-    
+    setupAppEventListeners();
     console.log('✅ 앱 화면 표시 완료');
-    
-    // 대시보드 로드
     showPage('dashboard');
+}
+
+// ===== 앱 이벤트 리스너 설정 =====
+function setupAppEventListeners() {
+    // 메뉴 클릭 이벤트
+    var menuItems = document.querySelectorAll('.menu-item');
+    for (var i = 0; i < menuItems.length; i++) {
+        menuItems[i].addEventListener('click', function() {
+            var text = this.textContent.trim();
+            console.log('메뉴 클릭:', text);
+            
+            // 메뉴 활성화 표시
+            var allMenus = document.querySelectorAll('.menu-item');
+            for (var j = 0; j < allMenus.length; j++) {
+                allMenus[j].classList.remove('active');
+            }
+            this.classList.add('active');
+            
+            // 페이지 로드
+            switch(text) {
+                case '대시보드':
+                    showPage('dashboard');
+                    break;
+                case '길드원 목록':
+                    showPage('members');
+                    break;
+                case '보스참여 등록':
+                    showPage('boss-record');
+                    break;
+                case '보스참여 히스토리':
+                    showPage('boss-history');
+                    break;
+                case '아이템 판매/분배':
+                    showPage('item-sales');
+                    break;
+                case '길드 자금 관리':
+                    showPage('guild-funds');
+                    break;
+                case '주급 분배':
+                    showPage('distribution');
+                    break;
+                case '통계/보고서':
+                    showPage('statistics');
+                    break;
+                case '관리자 설정':
+                    showPage('admin');
+                    break;
+                default:
+                    showPage('dashboard');
+            }
+        });
+    }
+    
+    // 로그아웃 버튼
+    var logoutBtns = document.querySelectorAll('.btn-icon');
+    for (var i = 0; i < logoutBtns.length; i++) {
+        if (logoutBtns[i].querySelector('.material-icons').textContent === 'logout') {
+            logoutBtns[i].addEventListener('click', logout);
+        }
+    }
+    
+    // 모바일 메뉴 토글
+    var mobileToggle = document.querySelector('.mobile-menu-toggle');
+    if (mobileToggle) {
+        mobileToggle.addEventListener('click', toggleSidebar);
+    }
 }
 
 // ===== 로그아웃 =====
 function logout() {
     console.log('🚪 로그아웃 처리');
     
-    // 세션 정리
     currentUser = null;
     membersCache = null;
     clearSession();
     
-    // body 클래스 변경
     document.body.classList.remove('logged-in');
     document.body.classList.add('not-logged-in');
     
-    // 앱 컨테이너 숨김
     var appContainer = document.getElementById('appContainer');
     if (appContainer) {
         appContainer.classList.remove('show');
@@ -2066,25 +1744,22 @@ function logout() {
         appContainer.style.opacity = '0';
     }
     
-    // 로그인 컨테이너 표시
     var loginContainer = document.getElementById('loginContainer');
     if (loginContainer) {
         loginContainer.style.display = 'flex';
     }
     
-    // 로그인 폼 초기화
     var loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.reset();
     }
     
-    // 이벤트 리스너 재설정
     setupFormEventListeners();
+    showMessage('로그아웃되었습니다.', 'info');
 }
 
 // ===== 페이지 네비게이션 =====
 function showPage(page) {
-    // 세션 유효성 검증
     if (!validateCurrentSession()) {
         logout();
         return;
@@ -2093,26 +1768,6 @@ function showPage(page) {
     console.log('📄 페이지 전환:', page);
     currentPage = page;
     
-    // 메뉴 활성화 표시
-    var menuItems = document.querySelectorAll('.menu-item');
-    for (var i = 0; i < menuItems.length; i++) {
-        menuItems[i].classList.remove('active');
-    }
-    
-    // 클릭된 메뉴 활성화
-    var clickedMenu = null;
-    for (var i = 0; i < menuItems.length; i++) {
-        var onclick = menuItems[i].getAttribute('onclick');
-        if (onclick && onclick.includes(page)) {
-            clickedMenu = menuItems[i];
-            break;
-        }
-    }
-    if (clickedMenu) {
-        clickedMenu.classList.add('active');
-    }
-    
-    // 페이지 콘텐츠 로드
     switch(page) {
         case 'dashboard':
             loadDashboard();
@@ -2149,21 +1804,33 @@ function showPage(page) {
 // ===== 대시보드 로드 =====
 function loadDashboard() {
     showLoader();
-    google.script.run
-        .withSuccessHandler(function(html) {
+    
+    var dashboardRunner = safeGoogleScriptRun('getDashboardHTML', 
+        function(html) {
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
-                contentWrapper.innerHTML = html;
+                contentWrapper.innerHTML = html || '<div class="page-header"><h1>대시보드</h1><p>대시보드를 준비 중입니다.</p></div>';
             }
             hideLoader();
-            loadRecentActivities();
-        })
-        .withFailureHandler(onError)
-        .getDashboardHTML();
-}
-
-function loadRecentActivities() {
-    // 최근 활동 로드 로직 (필요시 구현)
+        }, 
+        function(error) {
+            hideLoader();
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = '<div class="page-header"><h1>대시보드</h1><p>데이터를 불러오는 중 오류가 발생했습니다.</p></div>';
+            }
+        }
+    );
+    
+    if (dashboardRunner) {
+        dashboardRunner();
+    } else {
+        hideLoader();
+        var contentWrapper = document.getElementById('contentWrapper');
+        if (contentWrapper) {
+            contentWrapper.innerHTML = '<div class="page-header"><h1>대시보드</h1><p>대시보드를 준비 중입니다.</p></div>';
+        }
+    }
 }
 
 // ===== 길드원 목록 로드 =====
@@ -2171,32 +1838,124 @@ function loadMembers() {
     console.log('👥 길드원 목록 로드 시작');
     showLoader();
     
-    // 먼저 HTML 로드
-    google.script.run
-        .withSuccessHandler(function(html) {
+    var membersHtmlRunner = safeGoogleScriptRun('getMembersHTML', 
+        function(html) {
             console.log('✅ 길드원 HTML 로드 완료');
             var contentWrapper = document.getElementById('contentWrapper');
             if (contentWrapper) {
-                contentWrapper.innerHTML = html;
+                contentWrapper.innerHTML = html || getMembersPageHTML();
             }
-            
-            // HTML 로드 후 바로 데이터 로드 시작
             loadMembersData();
-        })
-        .withFailureHandler(function(error) {
+        }, 
+        function(error) {
             console.log('❌ 길드원 HTML 로드 실패:', error);
-            hideLoader();
-            onError(error);
-        })
-        .getMembersHTML();
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = getMembersPageHTML();
+            }
+            loadMembersData();
+        }
+    );
+    
+    if (membersHtmlRunner) {
+        membersHtmlRunner();
+    } else {
+        var contentWrapper = document.getElementById('contentWrapper');
+        if (contentWrapper) {
+            contentWrapper.innerHTML = getMembersPageHTML();
+        }
+        loadMembersData();
+    }
+}
+
+function getMembersPageHTML() {
+    return `
+        <div class="page-header">
+            <h1 class="page-title">길드원 목록</h1>
+            <p class="page-subtitle">전체 길드원 현황 및 참여 통계</p>
+        </div>
+        
+        <div class="members-stats">
+            <div class="member-stat-card">
+                <span class="stat-icon"><span class="material-icons">people</span></span>
+                <div>
+                    <div class="stat-number" id="totalMembersCount">로딩중...</div>
+                    <div class="stat-label">전체 길드원</div>
+                </div>
+            </div>
+            <div class="member-stat-card active">
+                <span class="stat-icon"><span class="material-icons">check_circle</span></span>
+                <div>
+                    <div class="stat-number" id="activeMembersCount">로딩중...</div>
+                    <div class="stat-label">활성 길드원</div>
+                </div>
+            </div>
+            <div class="member-stat-card inactive">
+                <span class="stat-icon"><span class="material-icons">cancel</span></span>
+                <div>
+                    <div class="stat-number" id="inactiveMembersCount">로딩중...</div>
+                    <div class="stat-label">비활성 길드원</div>
+                </div>
+            </div>
+            <div class="member-stat-card participation">
+                <span class="stat-icon"><span class="material-icons">sports_esports</span></span>
+                <div>
+                    <div class="stat-number" id="totalParticipationCount">로딩중...</div>
+                    <div class="stat-label">총 보스 참여</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>길드원 목록</h3>
+                <div class="header-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="forceRefreshMembersData()">
+                        <span class="material-icons">refresh</span>
+                        새로고침
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="modern-table" id="membersTable">
+                    <thead>
+                        <tr>
+                            <th>순위</th>
+                            <th>닉네임</th>
+                            <th>길드명</th>
+                            <th>서버</th>
+                            <th>직업</th>
+                            <th>가입일</th>
+                            <th>상태</th>
+                            <th>총 참여횟수</th>
+                            <th>참여율</th>
+                            <th>최근 참여</th>
+                            <th>권한</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; padding: 40px; color: #00BCD4;">
+                                <div class="loading-members">
+                                    <span class="material-icons" style="font-size: 48px; margin-bottom: 16px; animation: spin 2s linear infinite;">refresh</span>
+                                    <p><strong>길드원 정보를 불러오는 중...</strong></p>
+                                    <p style="font-size: 14px; color: #999; margin-top: 8px;">잠시만 기다려주세요</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
 }
 
 function loadMembersData() {
     console.log('📊 길드원 데이터 로드 시작');
     
-    // 서버에서 데이터 로드
-    google.script.run
-        .withSuccessHandler(function(members) {
+    var membersDataRunner = safeGoogleScriptRun('getMembers', 
+        function(members) {
             console.log('📨 길드원 데이터 수신:', members ? members.length : 0, '명');
             
             if (!members) {
@@ -2213,20 +1972,25 @@ function loadMembersData() {
                 return;
             }
             
-            // 정상 데이터 처리
             console.log('✅ 정상 데이터 처리 시작');
             membersCache = members;
             hideLoader();
             displayMembersTable(members);
             updateMembersStats(members);
-            drawParticipationChart(members);
-        })
-        .withFailureHandler(function(error) {
+        }, 
+        function(error) {
             console.log('❌ 길드원 데이터 로드 실패:', error);
             hideLoader();
             displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
-        })
-        .getMembers();
+        }
+    );
+    
+    if (membersDataRunner) {
+        membersDataRunner();
+    } else {
+        hideLoader();
+        displayErrorMessage('시스템에 연결할 수 없습니다.');
+    }
 }
 
 // ===== 회원 테이블 표시 =====
@@ -2252,7 +2016,6 @@ function displayMembersTable(members) {
         var member = members[i];
         console.log('👤 처리 중:', member.nickname);
         
-        // 안전한 값 접근
         var nickname = member.nickname || 'Unknown';
         var guild = member.guild || '-';
         var server = member.server || '-';
@@ -2263,18 +2026,15 @@ function displayMembersTable(members) {
         var lastParticipation = member.lastParticipation ? new Date(member.lastParticipation).toLocaleDateString() : '-';
         var isAdmin = member.isAdmin ? '관리자' : '일반회원';
         
-        // 상태별 클래스
         var statusClass = status === '활성' ? 'active' : 'inactive';
         var rowClass = 'member-row';
         
-        // 참여율 계산 (총 참여 대비)
         var totalParticipation = members.reduce(function(sum, m) { return sum + (m.participationCount || 0); }, 0);
         var participationRate = totalParticipation > 0 ? Math.round((participationCount / totalParticipation) * 100) : 0;
         
-        // 직업별 색상
         var jobColor = getJobColor(job);
         
-        html += '<tr class="' + rowClass + '" data-status="' + status + '" data-job="' + job + '" onclick="showMemberDetail(\'' + nickname + '\')">' +
+        html += '<tr class="' + rowClass + '" data-status="' + status + '" data-job="' + job + '">' +
             '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
             '<td>' +
                 '<div class="member-name-cell">' +
@@ -2318,7 +2078,6 @@ function updateMembersStats(members) {
         return sum + (member.participationCount || 0);
     }, 0) : 0;
     
-    // 안전하게 요소 업데이트
     function updateElementText(id, text) {
         var element = document.getElementById(id);
         if (element) {
@@ -2383,8 +2142,8 @@ function forceRefreshMembersData() {
     showLoader();
     membersCache = null;
     
-    google.script.run
-        .withSuccessHandler(function(members) {
+    var refreshRunner = safeGoogleScriptRun('forceRefreshMembers', 
+        function(members) {
             console.log('🔄 강제 새로고침 데이터 수신:', members ? members.length : 0, '명');
             
             membersCache = members;
@@ -2393,7 +2152,7 @@ function forceRefreshMembersData() {
             if (members && members.length > 0) {
                 displayMembersTable(members);
                 updateMembersStats(members);
-                drawParticipationChart(members);
+                showMessage('길드원 목록이 새로고침되었습니다.', 'success');
             } else {
                 displayEmptyMembersMessage();
                 
@@ -2401,39 +2160,53 @@ function forceRefreshMembersData() {
                     createTestDataNow();
                 }
             }
-        })
-        .withFailureHandler(function(error) {
+        }, 
+        function(error) {
             console.log('❌ 강제 새로고침 실패:', error);
             hideLoader();
             displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
-        })
-        .forceRefreshMembers();
+        }
+    );
+    
+    if (refreshRunner) {
+        refreshRunner();
+    } else {
+        hideLoader();
+        showMessage('시스템에 연결할 수 없습니다.', 'error');
+    }
 }
 
 function createTestDataNow() {
     console.log('🧪 테스트 데이터 생성 시작');
     showLoader();
     
-    google.script.run
-        .withSuccessHandler(function(result) {
+    var testDataRunner = safeGoogleScriptRun('setupCompleteTestEnvironment', 
+        function(result) {
             hideLoader();
             
-            if (result.success) {
-                alert(result.message);
+            if (result && result.success) {
+                showMessage(result.message, 'success');
                 
                 membersCache = null;
                 setTimeout(function() {
                     loadMembersData();
                 }, 1000);
             } else {
-                alert('테스트 데이터 생성 실패: ' + (result.message || '알 수 없는 오류'));
+                showMessage('테스트 데이터 생성 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
             }
-        })
-        .withFailureHandler(function(error) {
+        }, 
+        function(error) {
             hideLoader();
-            alert('테스트 데이터 생성 실패: ' + (error.message || error));
-        })
-        .setupCompleteTestEnvironment();
+            showMessage('테스트 데이터 생성 실패: ' + (error.message || error), 'error');
+        }
+    );
+    
+    if (testDataRunner) {
+        testDataRunner();
+    } else {
+        hideLoader();
+        showMessage('시스템에 연결할 수 없습니다.', 'error');
+    }
 }
 
 function getJobColor(job) {
@@ -2452,39 +2225,87 @@ function getJobColor(job) {
     return jobColors[job] || '#718096';
 }
 
-// 기타 함수들 - 간소화된 버전
-function exportMembersList() { forceRefreshMembersData(); }
-function refreshMembersList() { forceRefreshMembersData(); }
-function searchMembers(keyword) { console.log('검색:', keyword); }
-function filterMembers(status) { console.log('필터:', status); }
-function filterMembersByJob(job) { console.log('직업 필터:', job); }
-function sortMembers(sortBy) { console.log('정렬:', sortBy); }
-function showMemberDetail(nickname) { alert('회원 상세: ' + nickname); }
-function drawParticipationChart(members) { console.log('차트 그리기:', members.length); }
-function toggleSidebar() { 
-    var sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.toggle('active');
-}
-function onError(error) {
-    hideLoader();
-    console.log('❌ 오류:', error);
-    alert('오류: ' + (error.message || error));
+// ===== 기타 페이지 로드 함수들 (간소화) =====
+function loadBossRecord() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>보스 참여 등록</h1><p>보스 참여 등록 페이지는 준비 중입니다.</p></div>';
+    }
 }
 
-// 기타 페이지 로드 함수들 (간소화)
-function loadBossRecord() { alert('보스 참여 등록 페이지는 준비 중입니다.'); }
-function loadItemSales() { alert('아이템 판매/분배 페이지는 준비 중입니다.'); }
-function loadGuildFunds() { alert('길드 자금 관리 페이지는 준비 중입니다.'); }
-function loadBossHistory() { alert('보스참여 히스토리 페이지는 준비 중입니다.'); }
-function loadDistribution() { alert('주급 분배 페이지는 준비 중입니다.'); }
-function loadStatistics() { alert('통계/보고서 페이지는 준비 중입니다.'); }
+function loadItemSales() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>아이템 판매/분배</h1><p>아이템 판매/분배 페이지는 준비 중입니다.</p></div>';
+    }
+}
+
+function loadGuildFunds() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>길드 자금 관리</h1><p>길드 자금 관리 페이지는 준비 중입니다.</p></div>';
+    }
+}
+
+function loadBossHistory() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>보스참여 히스토리</h1><p>보스참여 히스토리 페이지는 준비 중입니다.</p></div>';
+    }
+}
+
+function loadDistribution() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>주급 분배</h1><p>주급 분배 페이지는 준비 중입니다.</p></div>';
+    }
+}
+
+function loadStatistics() { 
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>통계/보고서</h1><p>통계/보고서 페이지는 준비 중입니다.</p></div>';
+    }
+}
+
 function loadAdmin() { 
     if (!currentUser || !currentUser.isAdmin) {
-        alert('관리자 권한이 필요합니다.');
+        showMessage('관리자 권한이 필요합니다.', 'warning');
         return;
     }
-    alert('관리자 설정 페이지는 준비 중입니다.');
+    
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = '<div class="page-header"><h1>관리자 설정</h1><p>관리자 설정 페이지는 준비 중입니다.</p></div>';
+    }
 }
+
+// ===== 사이드바 토글 =====
+function toggleSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+    }
+}
+
+// ===== 유틸리티 함수들 =====
+function formatNumber(num) {
+    if (typeof num !== 'number') {
+        num = parseFloat(num) || 0;
+    }
+    return new Intl.NumberFormat('ko-KR').format(num);
+}
+
+function onError(error) {
+    hideLoader();
+    console.log('❌ 오류 발생:', error);
+    showMessage('오류가 발생했습니다: ' + (error.message || error), 'error');
+}
+
+// ===== 전역 함수로 노출 (HTML에서 사용) =====
+window.forceRefreshMembersData = forceRefreshMembersData;
+window.createTestDataNow = createTestDataNow;
+window.loadMembers = loadMembers;
   </script>
 </body>
 </html>
