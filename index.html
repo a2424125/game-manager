@@ -11,8 +11,1294 @@
   <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   
-  <!-- Styles -->
-  <?!= include('styles') ?>
+  <!-- Embedded Styles -->
+  <style>
+:root {
+    --primary-color: #00BCD4;
+    --secondary-color: #FFD54F;
+    --accent-color: #FF6B6B;
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --danger-color: #F44336;
+    --dark-text: #1A1A1A;
+    --light-text: #666666;
+    --background: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --border-color: #E2E8F0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--background);
+    color: var(--dark-text);
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* ===== 가장 중요한 부분: 초기 숨김 처리 ===== */
+#appContainer {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+#appContainer.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease;
+}
+
+/* 로그인 컨테이너는 항상 표시 가능 */
+#loginContainer {
+    display: flex;
+}
+
+body.logged-in #loginContainer {
+    display: none !important;
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 로딩 스피너 */
+.loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loader-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--primary-color);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* 로그인 화면 */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-hover);
+    width: 100%;
+    max-width: 400px;
+    animation: fadeIn 0.5s ease;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.login-header p {
+    color: var(--light-text);
+    font-size: 14px;
+}
+
+/* 폼 스타일 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--dark-text);
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #E0E0E0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.1);
+}
+
+.form-input:disabled {
+    background: #F5F5F5;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* 폼 힌트 및 에러 메시지 */
+.form-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--light-text);
+}
+
+.error-message {
+    font-size: 12px;
+    color: var(--danger-color);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.error-message::before {
+    content: "⚠";
+    font-size: 14px;
+}
+
+/* select 요소 특별 스타일 */
+select.form-input {
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="%23666" d="M6 8L2 4h8z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+/* optgroup 스타일 */
+select.form-input optgroup {
+    font-weight: 600;
+    color: var(--primary-color);
+    background: #F8F9FA;
+    font-style: normal;
+}
+
+select.form-input option {
+    padding: 8px 12px;
+    color: var(--dark-text);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* 버튼 스타일 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+    text-decoration: none;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none !important;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #00ACC1;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 188, 212, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+/* 네비게이션 바 */
+.navbar {
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 10px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-info {
+    text-align: right;
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--dark-text);
+    font-size: 13px;
+}
+
+.user-role {
+    font-size: 11px;
+    color: var(--light-text);
+}
+
+/* 사이드바 */
+.sidebar {
+    background: white;
+    width: 220px;
+    height: calc(100vh - 50px);
+    position: fixed;
+    left: 0;
+    top: 50px;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-menu {
+    padding: 12px 0;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: var(--dark-text);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin: 0 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.menu-item:hover {
+    background: #F1F5F9;
+    color: var(--primary-color);
+}
+
+.menu-item.active {
+    background: #EBF8FF;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.menu-icon {
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+/* 메인 콘텐츠 */
+#appContainer.show .main-content {
+    margin-left: 220px;
+    padding: 14px;
+    min-height: calc(100vh - 50px);
+    display: block !important;
+    background: var(--background);
+}
+
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 14px;
+    animation: fadeIn 0.5s ease;
+}
+
+.page-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 2px;
+}
+
+.page-subtitle {
+    color: var(--light-text);
+    font-size: 13px;
+}
+
+/* 카드 스타일 */
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+    animation: fadeIn 0.5s ease;
+    border: 1px solid var(--border-color);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+.card-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-text);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.card-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 대시보드 스타일 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.stat-card-new {
+    background: white;
+    border-radius: 8px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    min-height: 90px;
+}
+
+.stat-card-new:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-hover);
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.stat-title {
+    font-size: 12px;
+    color: var(--light-text);
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.stat-badge {
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.stat-badge.green {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.stat-badge.orange {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.stat-badge.red {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.stat-value-large {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.stat-icon-bg {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.1;
+}
+
+.stat-icon-bg.blue { background: #3B82F6; }
+.stat-icon-bg.yellow { background: #F59E0B; }
+.stat-icon-bg.red { background: #EF4444; }
+.stat-icon-bg.purple { background: #8B5CF6; }
+
+.stat-icon-bg .material-icons {
+    font-size: 20px;
+    color: inherit;
+    opacity: 1;
+}
+
+/* ===== 길드원 목록 페이지 스타일 ===== */
+.members-filter-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    background: #F8FAFC;
+    border-radius: 8px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    color: var(--light-text);
+    font-weight: 500;
+}
+
+.search-input, .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* 멤버 테이블 스타일 */
+.member-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.member-row:hover {
+    background-color: #F8FAFC !important;
+}
+
+.member-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.member-avatar-sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), #0891B2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.member-avatar-sm .avatar-text {
+    color: white;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.member-nickname {
+    color: var(--dark-text);
+    font-weight: 500;
+}
+
+/* 직업 배지 */
+.job-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    min-width: 60px;
+    display: inline-block;
+}
+
+/* 참여 관련 스타일 */
+.participation-cell {
+    text-align: center;
+}
+
+.participation-rate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.rate-bar {
+    flex: 1;
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.rate-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #10B981);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.rate-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--dark-text);
+    min-width: 30px;
+}
+
+/* 역할 배지 */
+.role-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-badge.admin {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.role-badge.member {
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+/* 순위 배지 개선 */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    background: #F1F5F9;
+    color: var(--light-text);
+}
+
+/* 상위 3등에 대한 특별 스타일 */
+tr:nth-child(1) .rank-badge {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+}
+
+tr:nth-child(2) .rank-badge {
+    background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+    color: white;
+}
+
+tr:nth-child(3) .rank-badge {
+    background: linear-gradient(135deg, #CD7F32, #A0522D);
+    color: white;
+}
+
+/* 통계 카드 개선 */
+.members-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.member-stat-card {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.member-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.member-stat-card .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F1F5F9;
+    color: var(--primary-color);
+}
+
+.member-stat-card.active .stat-icon {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.member-stat-card.inactive .stat-icon {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.member-stat-card.participation .stat-icon {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.member-stat-card .stat-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin-bottom: 2px;
+}
+
+.member-stat-card .stat-label {
+    font-size: 12px;
+    color: var(--light-text);
+}
+
+/* 참여율 차트 */
+.participation-chart {
+    padding: 20px;
+    text-align: center;
+    background: #F8FAFC;
+    border-radius: 8px;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 빈 상태 메시지 */
+.loading-members, .empty-members, .error-members {
+    text-align: center;
+    color: var(--light-text);
+}
+
+.loading-members .material-icons,
+.empty-members .material-icons,
+.error-members .material-icons {
+    display: block;
+    margin: 0 auto 16px;
+    opacity: 0.5;
+}
+
+/* 로딩 애니메이션 개선 */
+.loading-members {
+    animation: fadeIn 0.5s ease;
+}
+
+.loading-members .material-icons {
+    animation: spin 2s linear infinite;
+    color: var(--primary-color) !important;
+    opacity: 0.8 !important;
+}
+
+/* ===== 모달 스타일 ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: fadeIn 0.3s ease;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-hover);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--light-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: var(--dark-text);
+    background: #F1F5F9;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-actions .btn {
+    width: auto;
+    min-width: 100px;
+}
+
+/* 비밀번호 변경 모달 특별 스타일 */
+#changePasswordModal .form-group {
+    margin-bottom: 16px;
+}
+
+#changePasswordModal .form-input {
+    font-size: 14px;
+    padding: 10px 14px;
+}
+
+#changePasswordModal .form-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+/* 배지 스타일 */
+.badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* 분배 액션 버튼 */
+.distribution-actions {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 16px;
+    background: #F8FAFC;
+    border-radius: 0 0 12px 12px;
+}
+
+/* 순위 배지 스타일 */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 600;
+    background: #E2E8F0;
+    color: var(--light-text);
+}
+
+/* 참여자 배지 */
+.participant-badges {
+    display: flex;
+    align-items: center;
+    gap: -4px;
+}
+
+.badge-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    border: 2px solid white;
+    margin-left: -4px;
+}
+
+.badge-circle:first-child {
+    margin-left: 0;
+}
+
+.bg-green { background: #10B981; }
+.bg-yellow { background: #F59E0B; }
+.bg-blue { background: #3B82F6; }
+.bg-purple { background: #8B5CF6; }
+.bg-orange { background: #F97316; }
+
+.badge-more {
+    margin-left: 8px;
+    font-size: 12px;
+    color: var(--light-text);
+    font-weight: 500;
+}
+
+/* 상태 배지 */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.pending {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.status-badge.completed {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.status-badge.active {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.status-badge.inactive {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+/* 아이콘 버튼 */
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--light-text);
+    transition: all 0.2s;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.btn-icon:hover {
+    color: var(--primary-color);
+    background: #F1F5F9;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 12px;
+    transition: all 0.2s;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.btn-text:hover {
+    background: #EBF8FF;
+}
+
+.btn-text.full-width {
+    width: 100%;
+}
+
+/* 테이블 스타일 */
+.table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+    background: white;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: #F5F5F5;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #E0E0E0;
+}
+
+th {
+    font-weight: 600;
+    color: var(--dark-text);
+}
+
+tbody tr:hover {
+    background: #F9F9F9;
+}
+
+/* 모던 테이블 */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table thead {
+    background: #F8F9FA;
+}
+
+.modern-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modern-table td {
+    padding: 16px;
+    border-top: 1px solid #E9ECEF;
+    font-size: 14px;
+}
+
+.modern-table tbody tr:hover {
+    background: #F8F9FA;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 1000;
+        width: 100%;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    #appContainer.show .main-content {
+        margin-left: 0;
+        padding: 10px;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        bottom: 14px;
+        right: 14px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        box-shadow: var(--shadow-hover);
+        cursor: pointer;
+        z-index: 999;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-title {
+        font-size: 18px;
+    }
+    
+    .navbar-content {
+        padding: 0 10px;
+    }
+    
+    .navbar-brand {
+        font-size: 16px;
+    }
+    
+    .card {
+        padding: 10px;
+        margin-bottom: 6px;
+    }
+    
+    .stat-card-new {
+        min-height: 75px;
+        padding: 10px;
+    }
+    
+    .stat-value-large {
+        font-size: 16px;
+    }
+    
+    .members-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    
+    .members-filter-section {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .member-stat-card {
+        padding: 12px;
+    }
+    
+    .member-stat-card .stat-icon {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .member-stat-card .stat-number {
+        font-size: 16px;
+    }
+    
+    .modern-table th:nth-child(n+4),
+    .modern-table td:nth-child(n+4) {
+        display: none;
+    }
+    
+    .member-name-cell {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+    }
+    
+    .participation-rate {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .rate-bar {
+        width: 100%;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+        padding: 20px;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modal-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 20px;
+        margin: 12px;
+    }
+    
+    .navbar {
+        padding: 8px 12px;
+    }
+    
+    .navbar-brand {
+        font-size: 15px;
+    }
+    
+    .user-name {
+        font-size: 12px;
+    }
+    
+    .sidebar {
+        width: 100%;
+    }
+    
+    .members-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .modern-table th:nth-child(n+3),
+    .modern-table td:nth-child(n+3) {
+        display: none;
+    }
+    
+    .card {
+        padding: 12px;
+    }
+    
+    .page-title {
+        font-size: 18px;
+    }
+}
+
+.mobile-menu-toggle {
+    display: none;
+}
+
+/* 테이블 셀 정렬 */
+.modern-table td:nth-child(1), /* 순위 */
+.modern-table td:nth-child(8), /* 참여횟수 */
+.modern-table td:nth-child(9)  /* 참여율 */ {
+    text-align: center;
+}
+
+/* 호버 효과 개선 */
+.member-row:hover .member-nickname {
+    color: var(--primary-color);
+}
+
+.member-row:hover .rank-badge {
+    transform: scale(1.1);
+}
+  </style>
 </head>
 <body class="not-logged-in">
   <!-- 로더 -->
@@ -287,7 +1573,918 @@
     </div>
   </div>
 
-  <!-- 스크립트 -->
-  <?!= include('script') ?>
+  <!-- Embedded Script -->
+  <script>
+// ===== 전역 변수 =====
+var currentUser = null;
+var currentPage = 'dashboard';
+var membersCache = null; // 회원 목록 캐시
+
+// ===== 세션 관리 함수들 =====
+function saveSession(user) {
+    try {
+        sessionStorage.setItem('guildUser', JSON.stringify(user));
+        sessionStorage.setItem('guildSessionTime', Date.now().toString());
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+function loadSession() {
+    try {
+        var savedUser = sessionStorage.getItem('guildUser');
+        var sessionTime = sessionStorage.getItem('guildSessionTime');
+        
+        if (savedUser && sessionTime) {
+            var user = JSON.parse(savedUser);
+            var timeStamp = parseInt(sessionTime);
+            var now = Date.now();
+            
+            // 24시간 이내 세션만 유효
+            if (now - timeStamp < 24 * 60 * 60 * 1000) {
+                return user;
+            } else {
+                clearSession();
+            }
+        }
+    } catch(e) {
+        clearSession();
+    }
+    return null;
+}
+
+function clearSession() {
+    try {
+        sessionStorage.removeItem('guildUser');
+        sessionStorage.removeItem('guildSessionTime');
+    } catch(e) {
+        // 무시
+    }
+}
+
+function validateCurrentSession() {
+    if (!currentUser) {
+        var savedUser = loadSession();
+        if (savedUser) {
+            currentUser = savedUser;
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+// ===== 페이지 로드 시 초기화 =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 DOMContentLoaded 시작');
+    
+    // 저장된 세션 확인 및 자동 로그인
+    var savedUser = loadSession();
+    if (savedUser) {
+        console.log('✅ 저장된 세션 발견:', savedUser.nickname);
+        currentUser = savedUser;
+        showApp();
+        return;
+    }
+    
+    console.log('📝 로그인 화면 초기화');
+    // 로그인 화면 초기화
+    initializeLoginScreen();
+    hideLoader();
+});
+
+function initializeLoginScreen() {
+    // 앱 컨테이너 완전히 숨김
+    var appContainer = document.getElementById('appContainer');
+    if (appContainer) {
+        appContainer.style.display = 'none';
+        appContainer.style.visibility = 'hidden';
+        appContainer.style.opacity = '0';
+        appContainer.classList.remove('show');
+    }
+    
+    // body 클래스 설정
+    document.body.classList.add('not-logged-in');
+    document.body.classList.remove('logged-in');
+    
+    // 로그인 컨테이너 표시
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'flex';
+    }
+    
+    // 이벤트 리스너 등록
+    setupFormEventListeners();
+}
+
+// ===== 폼 이벤트 리스너 설정 =====
+function setupFormEventListeners() {
+    var loginForm = document.getElementById('loginForm');
+    var registerForm = document.getElementById('registerForm');
+    var changePasswordForm = document.getElementById('changePasswordForm');
+    
+    if (loginForm) {
+        loginForm.removeEventListener('submit', handleLogin);
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    if (registerForm) {
+        registerForm.removeEventListener('submit', handleRegister);
+        registerForm.addEventListener('submit', handleRegister);
+        
+        // 비밀번호 확인 실시간 검증
+        var regPassword = document.getElementById('regPassword');
+        var regPasswordConfirm = document.getElementById('regPasswordConfirm');
+        
+        if (regPassword && regPasswordConfirm) {
+            regPasswordConfirm.addEventListener('input', checkPasswordMatch);
+            regPassword.addEventListener('input', checkPasswordMatch);
+        }
+    }
+    
+    if (changePasswordForm) {
+        changePasswordForm.removeEventListener('submit', handleChangePassword);
+        changePasswordForm.addEventListener('submit', handleChangePassword);
+    }
+}
+
+// ===== 비밀번호 확인 검증 =====
+function checkPasswordMatch() {
+    var password = document.getElementById('regPassword');
+    var passwordConfirm = document.getElementById('regPasswordConfirm');
+    var mismatchDiv = document.getElementById('passwordMismatch');
+    var submitBtn = document.getElementById('registerSubmitBtn');
+    
+    if (password && passwordConfirm && mismatchDiv && submitBtn) {
+        if (passwordConfirm.value && password.value !== passwordConfirm.value) {
+            mismatchDiv.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+        } else {
+            mismatchDiv.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+        }
+    }
+}
+
+// ===== 로더 관리 =====
+function showLoader() {
+    var loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'flex';
+    }
+}
+
+function hideLoader() {
+    var loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
+}
+
+// ===== 로그인/회원가입 토글 =====
+function showRegister() {
+    var loginForm = document.getElementById('loginForm');
+    var registerForm = document.getElementById('registerForm');
+    
+    if (loginForm && registerForm) {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        
+        // 폼 초기화
+        registerForm.reset();
+        checkPasswordMatch();
+    }
+}
+
+function showLogin() {
+    var registerForm = document.getElementById('registerForm');
+    var loginForm = document.getElementById('loginForm');
+    
+    if (registerForm && loginForm) {
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+        
+        // 폼 초기화
+        loginForm.reset();
+    }
+}
+
+// ===== 로그인 처리 =====
+function handleLogin(e) {
+    e.preventDefault();
+    showLoader();
+    
+    var nickname = document.getElementById('loginNickname').value.trim();
+    var password = document.getElementById('loginPassword').value;
+    
+    if (!nickname || !password) {
+        hideLoader();
+        alert('닉네임과 비밀번호를 모두 입력해주세요.');
+        return;
+    }
+    
+    console.log('🔐 로그인 시도:', nickname);
+    
+    google.script.run
+        .withSuccessHandler(onLoginSuccess)
+        .withFailureHandler(onLoginError)
+        .login(nickname, password);
+}
+
+function onLoginSuccess(result) {
+    hideLoader();
+    
+    console.log('🔐 로그인 응답:', result);
+    
+    if (result.success) {
+        currentUser = result.user;
+        console.log('✅ 로그인 성공:', currentUser.nickname);
+        
+        // 세션 저장
+        if (saveSession(currentUser)) {
+            console.log('💾 세션 저장 완료');
+        }
+        
+        // 회원 목록 캐시 초기화
+        membersCache = null;
+        
+        // 기본 비밀번호 체크
+        if (currentUser.isAdmin && document.getElementById('loginPassword').value === 'admin123') {
+            if (confirm('보안을 위해 기본 관리자 비밀번호를 변경하는 것을 권장합니다.\n\n지금 비밀번호를 변경하시겠습니까?')) {
+                showApp();
+                setTimeout(function() {
+                    showChangePasswordModal();
+                }, 1000);
+                return;
+            }
+        }
+        
+        // 앱 화면으로 전환
+        showApp();
+        
+    } else {
+        console.log('❌ 로그인 실패:', result.message);
+        alert('로그인 실패: ' + (result.message || '알 수 없는 오류'));
+    }
+}
+
+function onLoginError(error) {
+    hideLoader();
+    console.log('❌ 로그인 오류:', error);
+    alert('로그인 중 오류가 발생했습니다: ' + (error.message || error));
+}
+
+// ===== 회원가입 처리 =====
+function handleRegister(e) {
+    e.preventDefault();
+    
+    var nickname = document.getElementById('regNickname').value.trim();
+    var guild = document.getElementById('regGuild').value.trim();
+    var server = document.getElementById('regServer').value.trim();
+    var job = document.getElementById('regJob').value.trim();
+    var password = document.getElementById('regPassword').value;
+    var passwordConfirm = document.getElementById('regPasswordConfirm').value;
+    
+    // 기본 검증
+    if (!nickname || !guild || !server || !job || !password || !passwordConfirm) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    // 닉네임 길이 체크
+    if (nickname.length < 2 || nickname.length > 20) {
+        alert('닉네임은 2-20자 사이로 입력해주세요.');
+        return;
+    }
+    
+    // 비밀번호 길이 체크
+    if (password.length < 6) {
+        alert('비밀번호는 6자 이상이어야 합니다.');
+        return;
+    }
+    
+    // 비밀번호 확인
+    if (password !== passwordConfirm) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    
+    showLoader();
+    
+    var userData = {
+        nickname: nickname,
+        guild: guild,
+        server: server,
+        job: job,
+        password: password
+    };
+    
+    google.script.run
+        .withSuccessHandler(onRegisterSuccess)
+        .withFailureHandler(onRegisterError)
+        .register(userData);
+}
+
+function onRegisterSuccess(result) {
+    hideLoader();
+    
+    if (result.success) {
+        // 회원 목록 캐시 무효화
+        membersCache = null;
+        
+        // 성공 메시지 표시
+        alert(result.message);
+        
+        // 폼 초기화
+        document.getElementById('registerForm').reset();
+        
+        // 로그인 폼으로 전환
+        showLogin();
+        
+        // 회원가입한 닉네임을 로그인 폼에 자동 입력
+        if (result.newMember && result.newMember.nickname) {
+            document.getElementById('loginNickname').value = result.newMember.nickname;
+            var passwordField = document.getElementById('loginPassword');
+            if (passwordField) {
+                passwordField.focus();
+            }
+        }
+        
+    } else {
+        alert('회원가입 실패: ' + (result.message || '알 수 없는 오류'));
+    }
+}
+
+function onRegisterError(error) {
+    hideLoader();
+    alert('회원가입 중 오류가 발생했습니다: ' + (error.message || error));
+}
+
+// ===== 비밀번호 변경 기능 =====
+function showChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function closeChangePasswordModal() {
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('changePasswordForm').reset();
+    }
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    
+    var currentPassword = document.getElementById('currentPassword').value;
+    var newPassword = document.getElementById('newPassword').value;
+    var newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
+    
+    if (!currentPassword || !newPassword || !newPasswordConfirm) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        alert('새 비밀번호는 6자 이상이어야 합니다.');
+        return;
+    }
+    
+    if (newPassword !== newPasswordConfirm) {
+        alert('새 비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    
+    if (currentPassword === newPassword) {
+        alert('새 비밀번호는 현재 비밀번호와 달라야 합니다.');
+        return;
+    }
+    
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            hideLoader();
+            if (result.success) {
+                alert('비밀번호가 성공적으로 변경되었습니다.');
+                closeChangePasswordModal();
+            } else {
+                alert('비밀번호 변경 실패: ' + (result.message || '알 수 없는 오류'));
+            }
+        })
+        .withFailureHandler(function(error) {
+            hideLoader();
+            alert('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error));
+        })
+        .changePassword(currentUser.id, currentPassword, newPassword);
+}
+
+// ===== 앱 화면 표시 =====
+function showApp() {
+    if (!currentUser) {
+        logout();
+        return;
+    }
+    
+    console.log('🚀 앱 화면 표시 시작');
+    
+    // body 클래스 변경
+    document.body.classList.remove('not-logged-in');
+    document.body.classList.add('logged-in');
+    
+    // 로그인 컨테이너 숨김
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'none';
+    }
+    
+    // 앱 컨테이너 표시
+    var appContainer = document.getElementById('appContainer');
+    if (appContainer) {
+        appContainer.style.display = 'block';
+        appContainer.style.visibility = 'visible';
+        appContainer.style.opacity = '1';
+        appContainer.classList.add('show');
+    }
+    
+    // 사용자 정보 표시
+    var userName = document.getElementById('userName');
+    var userRole = document.getElementById('userRole');
+    
+    if (userName) {
+        userName.textContent = currentUser.nickname;
+    }
+    
+    if (userRole) {
+        userRole.textContent = currentUser.isAdmin ? '관리자' : '일반 회원';
+    }
+    
+    // 관리자 메뉴 표시
+    if (currentUser.isAdmin) {
+        var adminElements = document.querySelectorAll('.admin-only');
+        for (var i = 0; i < adminElements.length; i++) {
+            adminElements[i].style.removeProperty('display');
+            adminElements[i].classList.add('show');
+        }
+    }
+    
+    // 이벤트 리스너 재설정
+    setupFormEventListeners();
+    
+    console.log('✅ 앱 화면 표시 완료');
+    
+    // 대시보드 로드
+    showPage('dashboard');
+}
+
+// ===== 로그아웃 =====
+function logout() {
+    console.log('🚪 로그아웃 처리');
+    
+    // 세션 정리
+    currentUser = null;
+    membersCache = null;
+    clearSession();
+    
+    // body 클래스 변경
+    document.body.classList.remove('logged-in');
+    document.body.classList.add('not-logged-in');
+    
+    // 앱 컨테이너 숨김
+    var appContainer = document.getElementById('appContainer');
+    if (appContainer) {
+        appContainer.classList.remove('show');
+        appContainer.style.display = 'none';
+        appContainer.style.visibility = 'hidden';
+        appContainer.style.opacity = '0';
+    }
+    
+    // 로그인 컨테이너 표시
+    var loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+        loginContainer.style.display = 'flex';
+    }
+    
+    // 로그인 폼 초기화
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.reset();
+    }
+    
+    // 이벤트 리스너 재설정
+    setupFormEventListeners();
+}
+
+// ===== 페이지 네비게이션 =====
+function showPage(page) {
+    // 세션 유효성 검증
+    if (!validateCurrentSession()) {
+        logout();
+        return;
+    }
+    
+    console.log('📄 페이지 전환:', page);
+    currentPage = page;
+    
+    // 메뉴 활성화 표시
+    var menuItems = document.querySelectorAll('.menu-item');
+    for (var i = 0; i < menuItems.length; i++) {
+        menuItems[i].classList.remove('active');
+    }
+    
+    // 클릭된 메뉴 활성화
+    var clickedMenu = null;
+    for (var i = 0; i < menuItems.length; i++) {
+        var onclick = menuItems[i].getAttribute('onclick');
+        if (onclick && onclick.includes(page)) {
+            clickedMenu = menuItems[i];
+            break;
+        }
+    }
+    if (clickedMenu) {
+        clickedMenu.classList.add('active');
+    }
+    
+    // 페이지 콘텐츠 로드
+    switch(page) {
+        case 'dashboard':
+            loadDashboard();
+            break;
+        case 'members':
+            loadMembers();
+            break;
+        case 'boss-history':
+            loadBossHistory();
+            break;
+        case 'boss-record':
+            loadBossRecord();
+            break;
+        case 'item-sales':
+            loadItemSales();
+            break;
+        case 'guild-funds':
+            loadGuildFunds();
+            break;
+        case 'distribution':
+            loadDistribution();
+            break;
+        case 'statistics':
+            loadStatistics();
+            break;
+        case 'admin':
+            loadAdmin();
+            break;
+        default:
+            loadDashboard();
+    }
+}
+
+// ===== 대시보드 로드 =====
+function loadDashboard() {
+    showLoader();
+    google.script.run
+        .withSuccessHandler(function(html) {
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
+            hideLoader();
+            loadRecentActivities();
+        })
+        .withFailureHandler(onError)
+        .getDashboardHTML();
+}
+
+function loadRecentActivities() {
+    // 최근 활동 로드 로직 (필요시 구현)
+}
+
+// ===== 길드원 목록 로드 =====
+function loadMembers() {
+    console.log('👥 길드원 목록 로드 시작');
+    showLoader();
+    
+    // 먼저 HTML 로드
+    google.script.run
+        .withSuccessHandler(function(html) {
+            console.log('✅ 길드원 HTML 로드 완료');
+            var contentWrapper = document.getElementById('contentWrapper');
+            if (contentWrapper) {
+                contentWrapper.innerHTML = html;
+            }
+            
+            // HTML 로드 후 바로 데이터 로드 시작
+            loadMembersData();
+        })
+        .withFailureHandler(function(error) {
+            console.log('❌ 길드원 HTML 로드 실패:', error);
+            hideLoader();
+            onError(error);
+        })
+        .getMembersHTML();
+}
+
+function loadMembersData() {
+    console.log('📊 길드원 데이터 로드 시작');
+    
+    // 서버에서 데이터 로드
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('📨 길드원 데이터 수신:', members ? members.length : 0, '명');
+            
+            if (!members) {
+                console.log('⚠️ 데이터가 null');
+                hideLoader();
+                displayEmptyMembersMessage();
+                return;
+            }
+            
+            if (members.length === 0) {
+                console.log('⚠️ 데이터가 빈 배열');
+                hideLoader();
+                displayEmptyMembersMessage();
+                return;
+            }
+            
+            // 정상 데이터 처리
+            console.log('✅ 정상 데이터 처리 시작');
+            membersCache = members;
+            hideLoader();
+            displayMembersTable(members);
+            updateMembersStats(members);
+            drawParticipationChart(members);
+        })
+        .withFailureHandler(function(error) {
+            console.log('❌ 길드원 데이터 로드 실패:', error);
+            hideLoader();
+            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
+        })
+        .getMembers();
+}
+
+// ===== 회원 테이블 표시 =====
+function displayMembersTable(members) {
+    console.log('🔄 회원 테이블 표시 시작:', members.length, '명');
+    
+    var tbody = document.getElementById('membersTableBody');
+    if (!tbody) {
+        console.log('❌ membersTableBody 요소를 찾을 수 없음');
+        return;
+    }
+    
+    if (!members || members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">등록된 회원이 없습니다.</td></tr>';
+        return;
+    }
+    
+    var html = '';
+    
+    console.log('🔄 회원 데이터 렌더링 시작');
+    
+    for (var i = 0; i < members.length; i++) {
+        var member = members[i];
+        console.log('👤 처리 중:', member.nickname);
+        
+        // 안전한 값 접근
+        var nickname = member.nickname || 'Unknown';
+        var guild = member.guild || '-';
+        var server = member.server || '-';
+        var job = member.job || '-';
+        var status = member.status || '활성';
+        var participationCount = member.participationCount || 0;
+        var joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '-';
+        var lastParticipation = member.lastParticipation ? new Date(member.lastParticipation).toLocaleDateString() : '-';
+        var isAdmin = member.isAdmin ? '관리자' : '일반회원';
+        
+        // 상태별 클래스
+        var statusClass = status === '활성' ? 'active' : 'inactive';
+        var rowClass = 'member-row';
+        
+        // 참여율 계산 (총 참여 대비)
+        var totalParticipation = members.reduce(function(sum, m) { return sum + (m.participationCount || 0); }, 0);
+        var participationRate = totalParticipation > 0 ? Math.round((participationCount / totalParticipation) * 100) : 0;
+        
+        // 직업별 색상
+        var jobColor = getJobColor(job);
+        
+        html += '<tr class="' + rowClass + '" data-status="' + status + '" data-job="' + job + '" onclick="showMemberDetail(\'' + nickname + '\')">' +
+            '<td><span class="rank-badge">' + (i + 1) + '</span></td>' +
+            '<td>' +
+                '<div class="member-name-cell">' +
+                    '<div class="member-avatar-sm">' +
+                        '<span class="avatar-text">' + nickname.charAt(0) + '</span>' +
+                    '</div>' +
+                    '<span class="member-nickname">' + nickname + '</span>' +
+                '</div>' +
+            '</td>' +
+            '<td>' + guild + '</td>' +
+            '<td>' + server + '</td>' +
+            '<td><span class="job-badge" style="background-color: ' + jobColor + '; color: white;">' + job + '</span></td>' +
+            '<td>' + joinDate + '</td>' +
+            '<td><span class="status-badge ' + statusClass + '">' + status + '</span></td>' +
+            '<td class="participation-cell">' + participationCount + '회</td>' +
+            '<td>' +
+                '<div class="participation-rate">' +
+                    '<div class="rate-bar">' +
+                        '<div class="rate-fill" style="width: ' + Math.min(participationRate, 100) + '%"></div>' +
+                    '</div>' +
+                    '<span class="rate-text">' + participationRate + '%</span>' +
+                '</div>' +
+            '</td>' +
+            '<td>' + lastParticipation + '</td>' +
+            '<td><span class="role-badge ' + (member.isAdmin ? 'admin' : 'member') + '">' + isAdmin + '</span></td>' +
+        '</tr>';
+    }
+    
+    console.log('✅ HTML 생성 완료, DOM 업데이트 중');
+    tbody.innerHTML = html;
+    console.log('✅ 회원 테이블 표시 완료');
+}
+
+function updateMembersStats(members) {
+    console.log('📊 회원 통계 업데이트');
+    
+    var total = members ? members.length : 0;
+    var active = members ? members.filter(function(m) { return m.status === '활성'; }).length : 0;
+    var inactive = total - active;
+    var totalParticipation = members ? members.reduce(function(sum, member) {
+        return sum + (member.participationCount || 0);
+    }, 0) : 0;
+    
+    // 안전하게 요소 업데이트
+    function updateElementText(id, text) {
+        var element = document.getElementById(id);
+        if (element) {
+            element.textContent = text;
+            console.log('📊', id, ':', text);
+        } else {
+            console.log('⚠️', id, '요소를 찾을 수 없음');
+        }
+    }
+    
+    updateElementText('totalMembersCount', total + '명');
+    updateElementText('activeMembersCount', active + '명');
+    updateElementText('inactiveMembersCount', inactive + '명');
+    updateElementText('totalParticipationCount', totalParticipation + '회');
+}
+
+function displayEmptyMembersMessage() {
+    console.log('📭 빈 회원 목록 메시지 표시');
+    
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
+            '<div class="empty-members">' +
+                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">people_outline</span>' +
+                '<p><strong>등록된 길드원이 없습니다</strong></p>' +
+                '<p style="font-size: 14px; color: #aaa; margin: 8px 0;">새로 가입한 회원이 있다면 아래 버튼을 눌러보세요.</p>' +
+                '<div style="margin-top: 20px;">' +
+                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">길드원 목록 새로고침</button>' +
+                    '<button class="btn btn-secondary" onclick="createTestDataNow(); return false;">테스트 데이터 생성</button>' +
+                '</div>' +
+            '</div>' +
+        '</td></tr>';
+    }
+    
+    updateMembersStats([]);
+}
+
+function displayErrorMessage(message) {
+    console.log('❌ 오류 메시지 표시:', message);
+    
+    var tbody = document.getElementById('membersTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">' +
+            '<div class="error-members">' +
+                '<span class="material-icons" style="font-size: 48px; margin-bottom: 16px; color: #f44336;">error</span>' +
+                '<p style="color: #f44336; font-weight: 500;"><strong>오류가 발생했습니다</strong></p>' +
+                '<p style="font-size: 14px; margin: 8px 0;">' + message + '</p>' +
+                '<div style="margin-top: 20px;">' +
+                    '<button class="btn btn-primary" onclick="forceRefreshMembersData(); return false;" style="margin-right: 10px;">다시 시도</button>' +
+                    '<button class="btn btn-secondary" onclick="loadMembers(); return false;">페이지 새로고침</button>' +
+                '</div>' +
+            '</div>' +
+        '</td></tr>';
+    }
+    
+    updateMembersStats([]);
+}
+
+// ===== 강제 새로고침 =====
+function forceRefreshMembersData() {
+    console.log('🔄 강제 새로고침 시작');
+    showLoader();
+    membersCache = null;
+    
+    google.script.run
+        .withSuccessHandler(function(members) {
+            console.log('🔄 강제 새로고침 데이터 수신:', members ? members.length : 0, '명');
+            
+            membersCache = members;
+            hideLoader();
+            
+            if (members && members.length > 0) {
+                displayMembersTable(members);
+                updateMembersStats(members);
+                drawParticipationChart(members);
+            } else {
+                displayEmptyMembersMessage();
+                
+                if (confirm('등록된 회원이 없습니다.\n테스트 데이터를 생성하시겠습니까?')) {
+                    createTestDataNow();
+                }
+            }
+        })
+        .withFailureHandler(function(error) {
+            console.log('❌ 강제 새로고침 실패:', error);
+            hideLoader();
+            displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
+        })
+        .forceRefreshMembers();
+}
+
+function createTestDataNow() {
+    console.log('🧪 테스트 데이터 생성 시작');
+    showLoader();
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            hideLoader();
+            
+            if (result.success) {
+                alert(result.message);
+                
+                membersCache = null;
+                setTimeout(function() {
+                    loadMembersData();
+                }, 1000);
+            } else {
+                alert('테스트 데이터 생성 실패: ' + (result.message || '알 수 없는 오류'));
+            }
+        })
+        .withFailureHandler(function(error) {
+            hideLoader();
+            alert('테스트 데이터 생성 실패: ' + (error.message || error));
+        })
+        .setupCompleteTestEnvironment();
+}
+
+function getJobColor(job) {
+    var jobColors = {
+        '버서커': '#E53E3E', '디스트로이어': '#C53030', '워로드': '#9B2C2C',
+        '홀리나이트': '#742A2A', '슬레이어': '#E53E3E',
+        '배틀마스터': '#DD6B20', '인파이터': '#C05621', '기공사': '#9C4221',
+        '창술사': '#7B341E', '스트라이커': '#DD6B20', '브레이커': '#C05621',
+        '건슬링어': '#38A169', '아르티스트': '#2F855A', '데빌헌터': '#276749',
+        '블래스터': '#22543D', '호크아이': '#1A202C', '스카우터': '#38A169',
+        '바드': '#3182CE', '서머너': '#2B6CB0', '아르카나': '#2C5282', '소서리스': '#2A4365',
+        '블레이드': '#805AD5', '데모닉': '#6B46C1', '리퍼': '#553C9A', '소울이터': '#44337A',
+        '도화가': '#D69E2E', '기상술사': '#00B5D8'
+    };
+    
+    return jobColors[job] || '#718096';
+}
+
+// 기타 함수들 - 간소화된 버전
+function exportMembersList() { forceRefreshMembersData(); }
+function refreshMembersList() { forceRefreshMembersData(); }
+function searchMembers(keyword) { console.log('검색:', keyword); }
+function filterMembers(status) { console.log('필터:', status); }
+function filterMembersByJob(job) { console.log('직업 필터:', job); }
+function sortMembers(sortBy) { console.log('정렬:', sortBy); }
+function showMemberDetail(nickname) { alert('회원 상세: ' + nickname); }
+function drawParticipationChart(members) { console.log('차트 그리기:', members.length); }
+function toggleSidebar() { 
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('active');
+}
+function onError(error) {
+    hideLoader();
+    console.log('❌ 오류:', error);
+    alert('오류: ' + (error.message || error));
+}
+
+// 기타 페이지 로드 함수들 (간소화)
+function loadBossRecord() { alert('보스 참여 등록 페이지는 준비 중입니다.'); }
+function loadItemSales() { alert('아이템 판매/분배 페이지는 준비 중입니다.'); }
+function loadGuildFunds() { alert('길드 자금 관리 페이지는 준비 중입니다.'); }
+function loadBossHistory() { alert('보스참여 히스토리 페이지는 준비 중입니다.'); }
+function loadDistribution() { alert('주급 분배 페이지는 준비 중입니다.'); }
+function loadStatistics() { alert('통계/보고서 페이지는 준비 중입니다.'); }
+function loadAdmin() { 
+    if (!currentUser || !currentUser.isAdmin) {
+        alert('관리자 권한이 필요합니다.');
+        return;
+    }
+    alert('관리자 설정 페이지는 준비 중입니다.');
+}
+  </script>
 </body>
 </html>
