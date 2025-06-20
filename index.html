@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>길드 관리 시스템</title>
   
+  <!-- CSP 설정 - Google Apps Script 호환 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://script.google.com https://script.googleusercontent.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;">
+  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   
@@ -31,13 +34,13 @@
       <!-- 로그인 폼 -->
       <form id="loginForm">
         <div class="form-group">
-          <label class="form-label">닉네임</label>
-          <input type="text" class="form-input" id="loginNickname" required placeholder="게임 닉네임을 입력하세요">
+          <label class="form-label" for="loginNickname">닉네임</label>
+          <input type="text" class="form-input" id="loginNickname" name="loginNickname" required placeholder="게임 닉네임을 입력하세요">
         </div>
         
         <div class="form-group">
-          <label class="form-label">비밀번호</label>
-          <input type="password" class="form-input" id="loginPassword" required placeholder="비밀번호를 입력하세요">
+          <label class="form-label" for="loginPassword">비밀번호</label>
+          <input type="password" class="form-input" id="loginPassword" name="loginPassword" required placeholder="비밀번호를 입력하세요">
         </div>
         
         <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
@@ -54,20 +57,20 @@
       <!-- 회원가입 폼 -->
       <form id="registerForm" style="display: none;">
         <div class="form-group">
-          <label class="form-label">닉네임 <span style="color: red;">*</span></label>
-          <input type="text" class="form-input" id="regNickname" required placeholder="게임 내 닉네임" maxlength="20">
+          <label class="form-label" for="regNickname">닉네임 <span style="color: red;">*</span></label>
+          <input type="text" class="form-input" id="regNickname" name="regNickname" required placeholder="게임 내 닉네임" maxlength="20">
           <small class="form-hint">2-20자 사이로 입력하세요</small>
         </div>
         
         <div class="form-group">
-          <label class="form-label">길드명 <span style="color: red;">*</span></label>
-          <input type="text" class="form-input" id="regGuild" required placeholder="소속 길드명" maxlength="30">
+          <label class="form-label" for="regGuild">길드명 <span style="color: red;">*</span></label>
+          <input type="text" class="form-input" id="regGuild" name="regGuild" required placeholder="소속 길드명" maxlength="30">
         </div>
         
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">서버 <span style="color: red;">*</span></label>
-            <select class="form-input" id="regServer" required>
+            <label class="form-label" for="regServer">서버 <span style="color: red;">*</span></label>
+            <select class="form-input" id="regServer" name="regServer" required>
               <option value="">서버 선택</option>
               <optgroup label="로스트아크 서버">
                 <option value="루페온">루페온</option>
@@ -92,8 +95,8 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label">직업 <span style="color: red;">*</span></label>
-            <select class="form-input" id="regJob" required>
+            <label class="form-label" for="regJob">직업 <span style="color: red;">*</span></label>
+            <select class="form-input" id="regJob" name="regJob" required>
               <option value="">직업 선택</option>
               <optgroup label="전사">
                 <option value="버서커">버서커</option>
@@ -139,14 +142,14 @@
         </div>
         
         <div class="form-group">
-          <label class="form-label">비밀번호 <span style="color: red;">*</span></label>
-          <input type="password" class="form-input" id="regPassword" required placeholder="6자 이상 입력하세요" minlength="6">
+          <label class="form-label" for="regPassword">비밀번호 <span style="color: red;">*</span></label>
+          <input type="password" class="form-input" id="regPassword" name="regPassword" required placeholder="6자 이상 입력하세요" minlength="6">
           <small class="form-hint">최소 6자 이상의 안전한 비밀번호를 입력하세요</small>
         </div>
         
         <div class="form-group">
-          <label class="form-label">비밀번호 확인 <span style="color: red;">*</span></label>
-          <input type="password" class="form-input" id="regPasswordConfirm" required placeholder="비밀번호를 다시 입력하세요">
+          <label class="form-label" for="regPasswordConfirm">비밀번호 확인 <span style="color: red;">*</span></label>
+          <input type="password" class="form-input" id="regPasswordConfirm" name="regPasswordConfirm" required placeholder="비밀번호를 다시 입력하세요">
           <div id="passwordMismatch" class="error-message" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
             비밀번호가 일치하지 않습니다.
           </div>
@@ -181,11 +184,11 @@
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
           
-          <button class="btn-icon" onclick="showChangePasswordModal()" title="비밀번호 변경">
+          <button class="btn-icon" onclick="showChangePasswordModal()" title="비밀번호 변경" aria-label="비밀번호 변경">
             <span class="material-icons">lock</span>
           </button>
           
-          <button class="btn-icon" onclick="logout()" title="로그아웃">
+          <button class="btn-icon" onclick="logout()" title="로그아웃" aria-label="로그아웃">
             <span class="material-icons">logout</span>
           </button>
         </div>
@@ -195,47 +198,47 @@
     <!-- 사이드바 -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-menu">
-        <a class="menu-item active" onclick="showPage('dashboard')">
+        <a class="menu-item active" onclick="showPage('dashboard')" role="button" tabindex="0">
           <span class="material-icons menu-icon">dashboard</span>
           <span>대시보드</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('members')">
+        <a class="menu-item" onclick="showPage('members')" role="button" tabindex="0">
           <span class="material-icons menu-icon">people</span>
           <span>길드원 목록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-record')">
+        <a class="menu-item" onclick="showPage('boss-record')" role="button" tabindex="0">
           <span class="material-icons menu-icon">add_circle</span>
           <span>보스참여 등록</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('boss-history')">
+        <a class="menu-item" onclick="showPage('boss-history')" role="button" tabindex="0">
           <span class="material-icons menu-icon">history</span>
           <span>보스참여 히스토리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('item-sales')">
+        <a class="menu-item" onclick="showPage('item-sales')" role="button" tabindex="0">
           <span class="material-icons menu-icon">sell</span>
           <span>아이템 판매/분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('guild-funds')">
+        <a class="menu-item" onclick="showPage('guild-funds')" role="button" tabindex="0">
           <span class="material-icons menu-icon">account_balance</span>
           <span>길드 자금 관리</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('distribution')">
+        <a class="menu-item" onclick="showPage('distribution')" role="button" tabindex="0">
           <span class="material-icons menu-icon">payments</span>
           <span>주급 분배</span>
         </a>
         
-        <a class="menu-item" onclick="showPage('statistics')">
+        <a class="menu-item" onclick="showPage('statistics')" role="button" tabindex="0">
           <span class="material-icons menu-icon">bar_chart</span>
           <span>통계/보고서</span>
         </a>
         
-        <a class="menu-item admin-only" onclick="showPage('admin')" style="display: none;">
+        <a class="menu-item admin-only" onclick="showPage('admin')" style="display: none;" role="button" tabindex="0">
           <span class="material-icons menu-icon">admin_panel_settings</span>
           <span>관리자 설정</span>
         </a>
@@ -250,7 +253,7 @@
     </main>
 
     <!-- 모바일 메뉴 토글 버튼 -->
-    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="메뉴 토글">
       <span class="material-icons">menu</span>
     </button>
   </div>
@@ -260,23 +263,23 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>비밀번호 변경</h3>
-        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+        <button class="close-btn" onclick="closeChangePasswordModal()" aria-label="닫기">×</button>
       </div>
       
       <form id="changePasswordForm">
         <div class="form-group">
-          <label class="form-label">현재 비밀번호</label>
-          <input type="password" class="form-input" id="currentPassword" required placeholder="현재 비밀번호를 입력하세요">
+          <label class="form-label" for="currentPassword">현재 비밀번호</label>
+          <input type="password" class="form-input" id="currentPassword" name="currentPassword" required placeholder="현재 비밀번호를 입력하세요">
         </div>
         
         <div class="form-group">
-          <label class="form-label">새 비밀번호</label>
-          <input type="password" class="form-input" id="newPassword" required placeholder="새 비밀번호를 입력하세요 (최소 6자)" minlength="6">
+          <label class="form-label" for="newPassword">새 비밀번호</label>
+          <input type="password" class="form-input" id="newPassword" name="newPassword" required placeholder="새 비밀번호를 입력하세요 (최소 6자)" minlength="6">
         </div>
         
         <div class="form-group">
-          <label class="form-label">새 비밀번호 확인</label>
-          <input type="password" class="form-input" id="newPasswordConfirm" required placeholder="새 비밀번호를 다시 입력하세요">
+          <label class="form-label" for="newPasswordConfirm">새 비밀번호 확인</label>
+          <input type="password" class="form-input" id="newPasswordConfirm" name="newPasswordConfirm" required placeholder="새 비밀번호를 다시 입력하세요">
         </div>
         
         <div class="modal-actions">
