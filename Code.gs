@@ -37,14 +37,10 @@ function clearCache() {
 function doGet() {
   return HtmlService.createTemplateFromFile('index')
     .evaluate()
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME)
+    .setSandboxMode(HtmlService.SandboxMode.NATIVE)  // 이 부분이 핵심!
     .setTitle('길드 관리 시스템')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-
-// HTML 파일 include 함수
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // ===== 시트 접근 함수 =====
