@@ -14,11 +14,19 @@ const SHEET_NAMES = {
   SYSTEM_SETTINGS: '시스템설정'
 }
 
-// ===== 캐시 초기화 함수 =====
+// ===== 캐시 초기화 함수 (개선됨) =====
 function clearCache() {
   try {
     const cache = CacheService.getScriptCache();
-    cache.removeAll(['guild_members', 'boss_statistics', 'guild_balance']);
+    cache.removeAll(['guild_members', 'boss_statistics', 'guild_balance', 'members_data']);
+    
+    // 사용자별 캐시도 초기화
+    const userCache = CacheService.getUserCache();
+    if (userCache) {
+      userCache.removeAll(['guild_members', 'members_data']);
+    }
+    
+    console.log('✅ 모든 캐시 초기화 완료');
     
     return { 
       success: true, 
@@ -26,6 +34,7 @@ function clearCache() {
     };
     
   } catch (error) {
+    console.error('❌ 캐시 초기화 오류:', error);
     return { 
       success: false, 
       message: '캐시 초기화 중 오류가 발생했습니다: ' + error.message 
@@ -33,21 +42,23 @@ function clearCache() {
   }
 }
 
-// ===== 웹 앱 진입점 =====
+// ===== 웹 앱 진입점 (CSP 헤더 개선) =====
 function doGet() {
   try {
     var template = HtmlService.createTemplateFromFile('index');
     
     var htmlOutput = template.evaluate()
-      .setSandboxMode(HtmlService.SandboxMode.IFRAME)  // IFRAME 모드로 변경
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
       .setTitle('길드 관리 시스템')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     
-    // CSP 헤더 완전 제거
+    // CSP 헤더 완전 제거 - HTML 내부에서 처리
     return htmlOutput;
     
   } catch (error) {
+    console.error('❌ doGet 오류:', error);
+    
     // 오류 발생시 기본 HTML 반환
     var errorHtml = HtmlService.createHtmlOutput(`
       <html>
@@ -55,6 +66,7 @@ function doGet() {
           <title>길드 관리 시스템</title>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:;">
         </head>
         <body>
           <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
@@ -76,10 +88,12 @@ function getSheet(sheetName) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
+      console.warn('⚠️ 시트를 찾을 수 없음:', sheetName);
       return null;
     }
     return sheet;
   } catch (error) {
+    console.error('❌ 시트 접근 오류:', error);
     return null;
   }
 }
@@ -109,6 +123,10 @@ function login(nickname, password) {
       
       // 인덱스 조정: 직업 필드가 추가되어 비밀번호는 5번째(인덱스 5), 상태는 7번째(인덱스 7), 관리자는 8번째(인덱스 8)
       if (data[i][1] === nickname && data[i][5] === hashedPassword && data[i][7] === '활성') {
+        
+        // 로그인 성공 시 캐시 초기화
+        clearCache();
+        
         return {
           success: true,
           user: {
@@ -126,6 +144,7 @@ function login(nickname, password) {
     return { success: false, message: '닉네임 또는 비밀번호가 일치하지 않습니다.' };
     
   } catch (error) {
+    console.error('❌ 로그인 오류:', error);
     return { success: false, message: '로그인 중 오류가 발생했습니다: ' + error.message };
   }
 }
@@ -171,6 +190,7 @@ function changePassword(userId, currentPassword, newPassword) {
     return { success: false, message: '사용자를 찾을 수 없습니다.' };
     
   } catch (error) {
+    console.error('❌ 비밀번호 변경 오류:', error);
     return { success: false, message: '비밀번호 변경 중 오류가 발생했습니다: ' + error.message };
   }
 }
@@ -210,6 +230,7 @@ function validateSession(userId, nickname) {
     return { success: false, message: '세션이 만료되었거나 유효하지 않습니다.' };
     
   } catch (error) {
+    console.error('❌ 세션 검증 오류:', error);
     return { success: false, message: '세션 검증 중 오류가 발생했습니다: ' + error.message };
   }
 }
@@ -221,6 +242,7 @@ function register(userData) {
     const initResult = initializeMembersSheet();
     if (!initResult.success) {
       // 시트 초기화 실패는 경고만 표시하고 진행
+      console.warn('⚠️ 시트 초기화 경고:', initResult.message);
     }
     
     const sheet = getSheet(SHEET_NAMES.MEMBERS);
@@ -281,8 +303,13 @@ function register(userData) {
     // 데이터 추가
     sheet.appendRow(newMemberData);
     
-    // 캐시 클리어
+    // 캐시 클리어 - 회원가입 후 즉시 반영되도록
     clearCache();
+    
+    // 스프레드시트 강제 새로고침
+    SpreadsheetApp.flush();
+    
+    console.log('✅ 회원가입 완료:', userData.nickname);
     
     return { 
       success: true, 
@@ -301,6 +328,7 @@ function register(userData) {
     };
     
   } catch (error) {
+    console.error('❌ 회원가입 오류:', error);
     return { success: false, message: '회원가입 중 오류가 발생했습니다: ' + error.message };
   }
 }
@@ -363,6 +391,7 @@ function initializeMembersSheet() {
     return { success: true, message: '회원정보 시트가 이미 존재합니다.' };
     
   } catch (error) {
+    console.error('❌ 회원정보 시트 초기화 오류:', error);
     return { success: false, message: '회원정보 시트 초기화 중 오류: ' + error.message };
   }
 }
@@ -373,6 +402,7 @@ function getAdminHTML() {
     // admin-pages.gs에서 관리자 HTML을 가져옴
     return getAdminPageHTML();
   } catch (error) {
+    console.error('❌ 관리자 HTML 로드 오류:', error);
     return `
       <div class="page-header">
         <h1 class="page-title">관리자 설정</h1>
@@ -394,7 +424,7 @@ function getAdminHTML() {
   }
 }
 
-// ===== 수정된 회원 목록 조회 함수 =====
+// ===== 강화된 회원 목록 조회 함수 =====
 function getMembers() {
   console.log('=== getMembers 함수 시작 ===');
   
@@ -417,7 +447,8 @@ function getMembers() {
       return [];
     }
     
-    // 회원 데이터 조회
+    // 회원 데이터 조회 - 스프레드시트 강제 새로고침 후
+    SpreadsheetApp.flush();
     const memberData = memberSheet.getDataRange().getValues();
     console.log('조회된 데이터 행 수:', memberData.length);
     console.log('헤더:', memberData[0]);
@@ -503,6 +534,7 @@ function getMembers() {
                 }
               } catch (dateError) {
                 // 날짜 파싱 오류는 무시
+                console.log('날짜 파싱 오류 무시:', dateError);
               }
             }
           }
@@ -538,13 +570,24 @@ function getMembers() {
   }
 }
 
-// ===== 강제 새로고침 함수 =====
+// ===== 강제 새로고침 함수 (개선됨) =====
 function forceRefreshMembers() {
   console.log('=== 강제 새로고침 시작 ===');
   
-  // 캐시 초기화
-  const cache = CacheService.getScriptCache();
-  cache.removeAll(['guild_members']);
+  // 모든 캐시 초기화
+  const cacheResult = clearCache();
+  console.log('캐시 초기화 결과:', cacheResult);
+  
+  // 스프레드시트 강제 새로고침
+  try {
+    SpreadsheetApp.flush();
+    console.log('✅ 스프레드시트 flush 완료');
+  } catch (error) {
+    console.log('⚠️ 스프레드시트 flush 오류:', error);
+  }
+  
+  // 약간의 지연 후 데이터 조회
+  Utilities.sleep(500); // 0.5초 대기
   
   // 회원 목록 다시 조회
   const members = getMembers();
@@ -618,6 +661,7 @@ function validateMemberData() {
     };
     
   } catch (error) {
+    console.error('❌ 데이터 검증 오류:', error);
     return {
       success: false,
       message: '데이터 검증 중 오류 발생: ' + error.message,
@@ -852,12 +896,16 @@ function initializeAllSheets() {
       results.push('길드자금: 기존 시트 확인됨');
     }
     
+    // 캐시 초기화
+    clearCache();
+    
     return { 
       success: true, 
       message: '시스템 초기화 완료!\n\n' + results.join('\n')
     };
     
   } catch (error) {
+    console.error('❌ 시스템 초기화 오류:', error);
     return { 
       success: false, 
       message: '시스템 초기화 중 오류가 발생했습니다: ' + error.message 
@@ -955,6 +1003,7 @@ function ensureAdminAccount() {
     }
     
   } catch (error) {
+    console.error('❌ 관리자 계정 확인 오류:', error);
     return { 
       success: false, 
       message: '관리자 계정 확인 중 오류가 발생했습니다: ' + error.message 
