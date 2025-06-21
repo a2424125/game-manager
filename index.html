@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>길드 관리 시스템</title>
   
-  <!-- CSP 메타 태그 완전 제거 - Google Apps Script에서 무시됨 -->
-  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   
@@ -1357,34 +1355,6 @@ var currentPage = 'dashboard';
 var membersCache = null;
 var isScriptReady = false;
 
-// ===== 안전한 Google Script 호출 래퍼 (eval 사용 없음) =====
-function safeGoogleScriptRun(functionName, successCallback, errorCallback) {
-    try {
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-            var runner = google.script.run;
-            if (successCallback) {
-                runner = runner.withSuccessHandler(successCallback);
-            }
-            if (errorCallback) {
-                runner = runner.withFailureHandler(errorCallback);
-            }
-            return runner[functionName];
-        } else {
-            console.warn('Google Script API not available');
-            if (errorCallback) {
-                errorCallback(new Error('Google Script API not available'));
-            }
-            return null;
-        }
-    } catch (e) {
-        console.error('Error calling Google Script:', e);
-        if (errorCallback) {
-            errorCallback(e);
-        }
-        return null;
-    }
-}
-
 // ===== 세션 관리 함수들 =====
 function saveSession(user) {
     try {
@@ -1479,7 +1449,7 @@ function showMessage(message, type) {
     messageDiv.textContent = message;
     document.body.appendChild(messageDiv);
     
-    setTimeout(function() {
+    var timeoutId = setTimeout(function() {
         if (messageDiv.parentNode) {
             messageDiv.parentNode.removeChild(messageDiv);
         }
@@ -1598,6 +1568,63 @@ function checkPasswordMatch() {
     }
 }
 
+// ===== 안전한 Google Script 호출 함수들 (CSP 문제 완전 해결) =====
+function callLogin(nickname, password) {
+    return google.script.run
+        .withSuccessHandler(onLoginSuccess)
+        .withFailureHandler(onLoginError)
+        .login(nickname, password);
+}
+
+function callRegister(userData) {
+    return google.script.run
+        .withSuccessHandler(onRegisterSuccess)
+        .withFailureHandler(onRegisterError)
+        .register(userData);
+}
+
+function callChangePassword(userId, currentPassword, newPassword) {
+    return google.script.run
+        .withSuccessHandler(onChangePasswordSuccess)
+        .withFailureHandler(onChangePasswordError)
+        .changePassword(userId, currentPassword, newPassword);
+}
+
+function callGetMembers() {
+    return google.script.run
+        .withSuccessHandler(onGetMembersSuccess)
+        .withFailureHandler(onGetMembersError)
+        .getMembers();
+}
+
+function callForceRefreshMembers() {
+    return google.script.run
+        .withSuccessHandler(onForceRefreshSuccess)
+        .withFailureHandler(onForceRefreshError)
+        .forceRefreshMembers();
+}
+
+function callGetDashboardHTML() {
+    return google.script.run
+        .withSuccessHandler(onGetDashboardHTMLSuccess)
+        .withFailureHandler(onGetDashboardHTMLError)
+        .getDashboardHTML();
+}
+
+function callGetMembersHTML() {
+    return google.script.run
+        .withSuccessHandler(onGetMembersHTMLSuccess)
+        .withFailureHandler(onGetMembersHTMLError)
+        .getMembersHTML();
+}
+
+function callSetupCompleteTestEnvironment() {
+    return google.script.run
+        .withSuccessHandler(onSetupTestSuccess)
+        .withFailureHandler(onSetupTestError)
+        .setupCompleteTestEnvironment();
+}
+
 // ===== 로그인 처리 =====
 function handleLogin(e) {
     e.preventDefault();
@@ -1613,14 +1640,7 @@ function handleLogin(e) {
     }
     
     console.log('🔐 로그인 시도:', nickname);
-    
-    var loginRunner = safeGoogleScriptRun('login', onLoginSuccess, onLoginError);
-    if (loginRunner) {
-        loginRunner(nickname, password);
-    } else {
-        hideLoader();
-        showMessage('시스템에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
-    }
+    callLogin(nickname, password);
 }
 
 function onLoginSuccess(result) {
@@ -1693,13 +1713,7 @@ function handleRegister(e) {
         password: password
     };
     
-    var registerRunner = safeGoogleScriptRun('register', onRegisterSuccess, onRegisterError);
-    if (registerRunner) {
-        registerRunner(userData);
-    } else {
-        hideLoader();
-        showMessage('시스템에 연결할 수 없습니다.', 'error');
-    }
+    callRegister(userData);
 }
 
 function onRegisterSuccess(result) {
@@ -1707,19 +1721,6 @@ function onRegisterSuccess(result) {
     
     if (result && result.success) {
         membersCache = null;
-        
-        var clearCacheRunner = safeGoogleScriptRun('clearCache', 
-            function(clearResult) {
-                console.log('서버 캐시 초기화 결과:', clearResult);
-            },
-            function(error) {
-                console.log('서버 캐시 초기화 오류:', error);
-            }
-        );
-        if (clearCacheRunner) {
-            clearCacheRunner();
-        }
-        
         showMessage(result.message, 'success');
         
         document.getElementById('registerForm').reset();
@@ -1788,29 +1789,22 @@ function handleChangePassword(e) {
     }
     
     showLoader();
-    
-    var changePasswordRunner = safeGoogleScriptRun('changePassword', 
-        function(result) {
-            hideLoader();
-            if (result && result.success) {
-                showMessage('비밀번호가 성공적으로 변경되었습니다.', 'success');
-                closeChangePasswordModal();
-            } else {
-                showMessage('비밀번호 변경 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
-            }
-        },
-        function(error) {
-            hideLoader();
-            showMessage('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error), 'error');
-        }
-    );
-    
-    if (changePasswordRunner) {
-        changePasswordRunner(currentUser.id, currentPassword, newPassword);
+    callChangePassword(currentUser.id, currentPassword, newPassword);
+}
+
+function onChangePasswordSuccess(result) {
+    hideLoader();
+    if (result && result.success) {
+        showMessage('비밀번호가 성공적으로 변경되었습니다.', 'success');
+        closeChangePasswordModal();
     } else {
-        hideLoader();
-        showMessage('시스템에 연결할 수 없습니다.', 'error');
+        showMessage('비밀번호 변경 실패: ' + (result && result.message ? result.message : '알 수 없는 오류'), 'error');
     }
+}
+
+function onChangePasswordError(error) {
+    hideLoader();
+    showMessage('비밀번호 변경 중 오류가 발생했습니다: ' + (error.message || error), 'error');
 }
 
 // ===== 앱 화면 표시 =====
@@ -1958,32 +1952,22 @@ function showPage(page) {
 // ===== 대시보드 로드 =====
 function loadDashboard() {
     showLoader();
-    
-    var dashboardRunner = safeGoogleScriptRun('getDashboardHTML', 
-        function(html) {
-            var contentWrapper = document.getElementById('contentWrapper');
-            if (contentWrapper) {
-                contentWrapper.innerHTML = html || getDashboardDefaultHTML();
-            }
-            hideLoader();
-        }, 
-        function(error) {
-            hideLoader();
-            var contentWrapper = document.getElementById('contentWrapper');
-            if (contentWrapper) {
-                contentWrapper.innerHTML = getDashboardDefaultHTML();
-            }
-        }
-    );
-    
-    if (dashboardRunner) {
-        dashboardRunner();
-    } else {
-        hideLoader();
-        var contentWrapper = document.getElementById('contentWrapper');
-        if (contentWrapper) {
-            contentWrapper.innerHTML = getDashboardDefaultHTML();
-        }
+    callGetDashboardHTML();
+}
+
+function onGetDashboardHTMLSuccess(html) {
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = html || getDashboardDefaultHTML();
+    }
+    hideLoader();
+}
+
+function onGetDashboardHTMLError(error) {
+    hideLoader();
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = getDashboardDefaultHTML();
     }
 }
 
@@ -1995,35 +1979,25 @@ function getDashboardDefaultHTML() {
 function loadMembers() {
     console.log('👥 길드원 목록 로드 시작');
     showLoader();
-    
-    var membersHtmlRunner = safeGoogleScriptRun('getMembersHTML', 
-        function(html) {
-            console.log('✅ 길드원 HTML 로드 완료');
-            var contentWrapper = document.getElementById('contentWrapper');
-            if (contentWrapper) {
-                contentWrapper.innerHTML = html || getMembersPageHTML();
-            }
-            loadMembersData();
-        }, 
-        function(error) {
-            console.log('❌ 길드원 HTML 로드 실패:', error);
-            var contentWrapper = document.getElementById('contentWrapper');
-            if (contentWrapper) {
-                contentWrapper.innerHTML = getMembersPageHTML();
-            }
-            loadMembersData();
-        }
-    );
-    
-    if (membersHtmlRunner) {
-        membersHtmlRunner();
-    } else {
-        var contentWrapper = document.getElementById('contentWrapper');
-        if (contentWrapper) {
-            contentWrapper.innerHTML = getMembersPageHTML();
-        }
-        loadMembersData();
+    callGetMembersHTML();
+}
+
+function onGetMembersHTMLSuccess(html) {
+    console.log('✅ 길드원 HTML 로드 완료');
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = html || getMembersPageHTML();
     }
+    loadMembersData();
+}
+
+function onGetMembersHTMLError(error) {
+    console.log('❌ 길드원 HTML 로드 실패:', error);
+    var contentWrapper = document.getElementById('contentWrapper');
+    if (contentWrapper) {
+        contentWrapper.innerHTML = getMembersPageHTML();
+    }
+    loadMembersData();
 }
 
 function getMembersPageHTML() {
@@ -2032,110 +2006,42 @@ function getMembersPageHTML() {
 
 function loadMembersData() {
     console.log('📊 길드원 데이터 로드 시작');
+    callGetMembers();
+}
+
+function onGetMembersSuccess(members) {
+    console.log('📨 길드원 데이터 수신:', members ? members.length : 0, '명');
     
-    var clearCacheRunner = safeGoogleScriptRun('clearCache', 
-        function(clearResult) {
-            console.log('서버 캐시 초기화 결과:', clearResult);
-            
-            var membersDataRunner = safeGoogleScriptRun('forceRefreshMembers', 
-                function(members) {
-                    console.log('📨 강제 새로고침된 길드원 데이터 수신:', members ? members.length : 0, '명');
-                    
-                    if (!members) {
-                        console.log('⚠️ 데이터가 null');
-                        hideLoader();
-                        displayEmptyMembersMessage();
-                        return;
-                    }
-                    
-                    if (members.length === 0) {
-                        console.log('⚠️ 데이터가 빈 배열');
-                        hideLoader();
-                        displayEmptyMembersMessage();
-                        return;
-                    }
-                    
-                    console.log('✅ 정상 데이터 처리 시작');
-                    membersCache = members;
-                    hideLoader();
-                    displayMembersTable(members);
-                    updateMembersStats(members);
-                    
-                    var refreshBtn = document.getElementById('refreshMembersBtn');
-                    if (refreshBtn) {
-                        refreshBtn.addEventListener('click', forceRefreshMembersData);
-                    }
-                }, 
-                function(error) {
-                    console.log('❌ 길드원 데이터 로드 실패:', error);
-                    hideLoader();
-                    displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
-                }
-            );
-            
-            if (membersDataRunner) {
-                membersDataRunner();
-            } else {
-                hideLoader();
-                displayErrorMessage('시스템에 연결할 수 없습니다.');
-            }
-        },
-        function(error) {
-            console.log('❌ 캐시 초기화 실패:', error);
-            loadMembersDataDirect();
-        }
-    );
+    if (!members) {
+        console.log('⚠️ 데이터가 null');
+        hideLoader();
+        displayEmptyMembersMessage();
+        return;
+    }
     
-    if (clearCacheRunner) {
-        clearCacheRunner();
-    } else {
-        loadMembersDataDirect();
+    if (members.length === 0) {
+        console.log('⚠️ 데이터가 빈 배열');
+        hideLoader();
+        displayEmptyMembersMessage();
+        return;
+    }
+    
+    console.log('✅ 정상 데이터 처리 시작');
+    membersCache = members;
+    hideLoader();
+    displayMembersTable(members);
+    updateMembersStats(members);
+    
+    var refreshBtn = document.getElementById('refreshMembersBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', forceRefreshMembersData);
     }
 }
 
-function loadMembersDataDirect() {
-    var membersDataRunner = safeGoogleScriptRun('getMembers', 
-        function(members) {
-            console.log('📨 길드원 데이터 수신:', members ? members.length : 0, '명');
-            
-            if (!members) {
-                console.log('⚠️ 데이터가 null');
-                hideLoader();
-                displayEmptyMembersMessage();
-                return;
-            }
-            
-            if (members.length === 0) {
-                console.log('⚠️ 데이터가 빈 배열');
-                hideLoader();
-                displayEmptyMembersMessage();
-                return;
-            }
-            
-            console.log('✅ 정상 데이터 처리 시작');
-            membersCache = members;
-            hideLoader();
-            displayMembersTable(members);
-            updateMembersStats(members);
-            
-            var refreshBtn = document.getElementById('refreshMembersBtn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', forceRefreshMembersData);
-            }
-        }, 
-        function(error) {
-            console.log('❌ 길드원 데이터 로드 실패:', error);
-            hideLoader();
-            displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
-        }
-    );
-    
-    if (membersDataRunner) {
-        membersDataRunner();
-    } else {
-        hideLoader();
-        displayErrorMessage('시스템에 연결할 수 없습니다.');
-    }
+function onGetMembersError(error) {
+    console.log('❌ 길드원 데이터 로드 실패:', error);
+    hideLoader();
+    displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
 }
 
 // ===== 회원 테이블 표시 =====
@@ -2264,35 +2170,54 @@ function forceRefreshMembersData() {
     console.log('🔄 강제 새로고침 시작');
     showLoader();
     membersCache = null;
+    callForceRefreshMembers();
+}
+
+function onForceRefreshSuccess(members) {
+    console.log('🔄 강제 새로고침 데이터 수신:', members ? members.length : 0, '명');
     
-    var refreshRunner = safeGoogleScriptRun('forceRefreshMembers', 
-        function(members) {
-            console.log('🔄 강제 새로고침 데이터 수신:', members ? members.length : 0, '명');
-            
-            membersCache = members;
-            hideLoader();
-            
-            if (members && members.length > 0) {
-                displayMembersTable(members);
-                updateMembersStats(members);
-                showMessage('길드원 목록이 새로고침되었습니다.', 'success');
-            } else {
-                displayEmptyMembersMessage();
-            }
-        }, 
-        function(error) {
-            console.log('❌ 강제 새로고침 실패:', error);
-            hideLoader();
-            displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
-        }
-    );
+    membersCache = members;
+    hideLoader();
     
-    if (refreshRunner) {
-        refreshRunner();
+    if (members && members.length > 0) {
+        displayMembersTable(members);
+        updateMembersStats(members);
+        showMessage('길드원 목록이 새로고침되었습니다.', 'success');
     } else {
-        hideLoader();
-        showMessage('시스템에 연결할 수 없습니다.', 'error');
+        displayEmptyMembersMessage();
     }
+}
+
+function onForceRefreshError(error) {
+    console.log('❌ 강제 새로고침 실패:', error);
+    hideLoader();
+    displayErrorMessage('새로고침 중 오류가 발생했습니다: ' + (error.message || error));
+}
+
+function createTestDataNow() {
+    console.log('🧪 테스트 데이터 생성 시작');
+    showLoader();
+    callSetupCompleteTestEnvironment();
+}
+
+function onSetupTestSuccess(result) {
+    hideLoader();
+    
+    if (result.success) {
+        showMessage(result.message, 'success');
+        
+        membersCache = null;
+        var timeoutId = setTimeout(function() {
+            loadMembersData();
+        }, 1000);
+    } else {
+        showMessage('테스트 데이터 생성 실패: ' + (result.message || '알 수 없는 오류'), 'error');
+    }
+}
+
+function onSetupTestError(error) {
+    hideLoader();
+    showMessage('테스트 데이터 생성 실패: ' + (error.message || error), 'error');
 }
 
 function getJobColor(job) {
