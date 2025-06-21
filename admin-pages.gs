@@ -162,7 +162,8 @@ function getAdminMembersTab() {
           <span class="material-icons">people</span>
           <span>전체 회원 목록</span>
           <div class="header-actions">
-            <input type="text" class="search-input" placeholder="회원 검색..." onkeyup="searchAdminMembers(this.value)">
+            <label for="adminMemberSearchInput" class="sr-only">회원 검색</label>
+            <input type="text" class="search-input" id="adminMemberSearchInput" placeholder="회원 검색..." onkeyup="searchAdminMembers(this.value)">
             <button class="btn btn-sm btn-primary" onclick="exportMembers()">
               <span class="material-icons">download</span>
               내보내기
@@ -175,6 +176,7 @@ function getAdminMembersTab() {
             <thead>
               <tr>
                 <th>
+                  <label for="selectAllMembers" class="sr-only">모든 회원 선택</label>
                   <input type="checkbox" id="selectAllMembers" onchange="toggleAllMembers(this)">
                 </th>
                 <th>ID</th>
@@ -193,6 +195,7 @@ function getAdminMembersTab() {
         </div>
         
         <div class="bulk-actions">
+          <label for="bulkAction" class="sr-only">일괄 작업 선택</label>
           <select id="bulkAction" class="form-input">
             <option value="">일괄 작업 선택</option>
             <option value="activate">활성화</option>
@@ -326,7 +329,7 @@ function getAdminSettingsTab() {
             
             <div class="setting-item">
               <div class="setting-info">
-                <label>수수료율</label>
+                <label for="commissionRate">수수료율</label>
                 <p class="setting-description">아이템 판매 시 적용되는 수수료율입니다.</p>
               </div>
               <div class="setting-control">
@@ -337,7 +340,7 @@ function getAdminSettingsTab() {
             
             <div class="setting-item">
               <div class="setting-info">
-                <label>자동 백업</label>
+                <label for="autoBackup">자동 백업</label>
                 <p class="setting-description">매일 자정에 자동으로 백업을 실행합니다.</p>
               </div>
               <div class="setting-control">
@@ -350,7 +353,7 @@ function getAdminSettingsTab() {
             
             <div class="setting-item">
               <div class="setting-info">
-                <label>보스 출현 알림</label>
+                <label for="bossNotification">보스 출현 알림</label>
                 <p class="setting-description">보스 출현 10분 전 알림을 발송합니다.</p>
               </div>
               <div class="setting-control">
@@ -366,31 +369,51 @@ function getAdminSettingsTab() {
             <h4>시스템 관리</h4>
             
             <div class="setting-item">
-              <label>회원 데이터 검증</label>
-              <button class="btn btn-secondary" onclick="validateMemberData()">
-                데이터 검증 실행
-              </button>
+              <div class="setting-info">
+                <span>회원 데이터 검증</span>
+                <p class="setting-description">회원 데이터의 무결성을 검증합니다.</p>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-secondary" onclick="validateMemberData()">
+                  데이터 검증 실행
+                </button>
+              </div>
             </div>
             
             <div class="setting-item">
-              <label>캐시 초기화</label>
-              <button class="btn btn-secondary" onclick="clearCache()">
-                캐시 지우기
-              </button>
+              <div class="setting-info">
+                <span>캐시 초기화</span>
+                <p class="setting-description">시스템 캐시를 초기화합니다.</p>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-secondary" onclick="clearCache()">
+                  캐시 지우기
+                </button>
+              </div>
             </div>
             
             <div class="setting-item">
-              <label>테스트 환경 설정</label>
-              <button class="btn btn-secondary" onclick="setupCompleteTestEnvironment()">
-                완전한 테스트 환경 구성
-              </button>
+              <div class="setting-info">
+                <span>테스트 환경 설정</span>
+                <p class="setting-description">완전한 테스트 환경을 구성합니다.</p>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-secondary" onclick="setupCompleteTestEnvironment()">
+                  완전한 테스트 환경 구성
+                </button>
+              </div>
             </div>
             
             <div class="setting-item">
-              <label>시스템 로그</label>
-              <button class="btn btn-secondary" onclick="downloadLogs()">
-                로그 다운로드
-              </button>
+              <div class="setting-info">
+                <span>시스템 로그</span>
+                <p class="setting-description">시스템 로그를 다운로드합니다.</p>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-secondary" onclick="downloadLogs()">
+                  로그 다운로드
+                </button>
+              </div>
             </div>
           </div>
           
@@ -419,20 +442,21 @@ function getAdminModals() {
           <input type="hidden" id="bossId">
           
           <div class="form-group">
-            <label class="form-label">보스명</label>
-            <input type="text" class="form-input" id="bossName" required>
+            <label class="form-label" for="bossNameModalInput">보스명</label>
+            <input type="text" class="form-input" id="bossNameModalInput" required>
           </div>
           
           <div class="form-group">
-            <label class="form-label">보스 레벨</label>
-            <input type="number" class="form-input" id="bossLevel" min="1" required>
+            <label class="form-label" for="bossLevelInput">보스 레벨</label>
+            <input type="number" class="form-input" id="bossLevelInput" min="1" required>
           </div>
           
           <div class="form-group">
             <label class="form-label">출현 시간</label>
             <div class="time-inputs">
               <div id="timeInputs">
-                <input type="time" class="form-input time-input" name="spawnTime">
+                <label for="spawnTime1" class="sr-only">출현 시간 1</label>
+                <input type="time" class="form-input time-input" id="spawnTime1" name="spawnTime">
               </div>
               <button type="button" class="btn btn-sm btn-secondary" onclick="addTimeInput()">
                 <span class="material-icons">add</span>
@@ -443,8 +467,8 @@ function getAdminModals() {
           </div>
           
           <div class="form-group">
-            <label class="form-label">상태</label>
-            <select class="form-input" id="bossStatus">
+            <label class="form-label" for="bossStatusSelect">상태</label>
+            <select class="form-input" id="bossStatusSelect">
               <option value="활성">활성</option>
               <option value="비활성">비활성</option>
             </select>
@@ -466,7 +490,8 @@ function getAdminModals() {
         </div>
         
         <div class="member-select-list">
-          <input type="text" class="search-input" placeholder="회원 검색..." onkeyup="filterRoleMembers(this.value)">
+          <label for="roleSearchInput" class="sr-only">회원 검색</label>
+          <input type="text" class="search-input" id="roleSearchInput" placeholder="회원 검색..." onkeyup="filterRoleMembers(this.value)">
           <div id="roleAssignList" class="member-checkbox-list"></div>
         </div>
         
@@ -476,6 +501,351 @@ function getAdminModals() {
         </div>
       </div>
     </div>
+    
+    <style>
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      
+      .admin-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
+        background: white;
+        border-radius: 12px 12px 0 0;
+        padding: 0 20px;
+      }
+      
+      .tab-btn {
+        background: none;
+        border: none;
+        padding: 16px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--light-text);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+      }
+      
+      .tab-btn:hover {
+        color: var(--primary-color);
+      }
+      
+      .tab-btn.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+      }
+      
+      .tab-content {
+        display: none;
+      }
+      
+      .tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+      
+      .admin-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .admin-stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s ease;
+      }
+      
+      .admin-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+      }
+      
+      .stat-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+      
+      .stat-icon-wrapper.blue { background: #3B82F6; }
+      .stat-icon-wrapper.green { background: #10B981; }
+      .stat-icon-wrapper.orange { background: #F59E0B; }
+      .stat-icon-wrapper.red { background: #EF4444; }
+      
+      .stat-info h3 {
+        font-size: 14px;
+        margin-bottom: 4px;
+        color: var(--dark-text);
+        font-weight: 500;
+      }
+      
+      .stat-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--dark-text);
+        margin-bottom: 2px;
+      }
+      
+      .stat-change {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--light-text);
+      }
+      
+      .stat-change.positive {
+        color: var(--success-color);
+      }
+      
+      .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      .quick-action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: var(--dark-text);
+        font-size: 13px;
+      }
+      
+      .quick-action-btn:hover {
+        border-color: var(--primary-color);
+        background: #EBF8FF;
+        transform: translateY(-2px);
+      }
+      
+      .quick-action-btn .material-icons {
+        font-size: 24px;
+        color: var(--primary-color);
+      }
+      
+      .settings-content {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      
+      .settings-section {
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 24px;
+      }
+      
+      .settings-section:last-child {
+        border-bottom: none;
+      }
+      
+      .settings-section h4 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--dark-text);
+        margin-bottom: 16px;
+      }
+      
+      .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #F1F5F9;
+      }
+      
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+      
+      .setting-info {
+        flex: 1;
+      }
+      
+      .setting-info label {
+        font-weight: 500;
+        color: var(--dark-text);
+        margin-bottom: 4px;
+        display: block;
+      }
+      
+      .setting-description {
+        font-size: 13px;
+        color: var(--light-text);
+        margin: 0;
+      }
+      
+      .setting-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .settings-actions {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+      }
+      
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+      }
+      
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 20px;
+      }
+      
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+      }
+      
+      input:checked + .slider {
+        background-color: var(--primary-color);
+      }
+      
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+      
+      .role-management {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      
+      .role-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        background: #F8FAFC;
+      }
+      
+      .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      
+      .role-header h4 {
+        margin: 0;
+        color: var(--dark-text);
+      }
+      
+      .role-count {
+        font-size: 12px;
+        color: var(--light-text);
+        background: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+      }
+      
+      .role-description {
+        font-size: 13px;
+        color: var(--light-text);
+        margin-bottom: 12px;
+      }
+      
+      .permission-matrix {
+        margin-top: 24px;
+      }
+      
+      .permission-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      
+      .permission-table th,
+      .permission-table td {
+        padding: 12px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+      }
+      
+      .permission-table th {
+        background: #F8FAFC;
+        font-weight: 600;
+        color: var(--dark-text);
+      }
+      
+      .permission-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+      }
+      
+      .permission-table .material-icons.check {
+        color: var(--success-color);
+      }
+      
+      .permission-table .material-icons:not(.check) {
+        color: var(--danger-color);
+      }
+      
+      .bulk-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 16px;
+        border-top: 1px solid var(--border-color);
+        background: #F8FAFC;
+        border-radius: 0 0 12px 12px;
+      }
+    </style>
   `;
 }
 
@@ -515,7 +885,7 @@ function getMembersByRole() {
         nickname: data[i][1],
         guild: data[i][2],
         server: data[i][3],
-        job: data[i][4]  // 직업 필드 추가
+        job: data[i][4]
       };
       
       // 권한에 따른 분류 (인덱스 8이 관리자 여부)
@@ -711,7 +1081,7 @@ function setupCompleteTestEnvironment() {
       message: '완전한 테스트 환경 설정 완료!\n\n' + 
                '✅ 시스템 초기화 완료\n' +
                '✅ 테스트 데이터 생성 완료\n\n' +
-               '🔑 관리자 계정:\n• 닉네임: 관리자\n• 비밀번호: admin123\n\n' +
+               '🔑 관리자 계정:\n• 닉네임: 관리자\n• 비밀번호: Admin#2025!Safe\n\n' +
                '🔑 테스트 회원 계정들:\n• 닉네임: 길드페이드 (고참여자)\n• 닉네임: 아워로드 (고참여자)\n• 비밀번호: test123 (모든 테스트 계정 공통)\n\n' +
                '📊 생성된 데이터:\n• 회원 9명 (관리자 포함)\n• 보스 참여 기록 다수\n• 길드 자금 거래 내역\n• 샘플 보스 목록\n\n' +
                '🚀 이제 모든 기능을 테스트할 수 있습니다!\n길드원 목록에서 실제 데이터를 확인해보세요.'
@@ -816,6 +1186,8 @@ function createTestData() {
         range.setValues(testRecords);
       }
     }
+    
+    SpreadsheetApp.flush();
     
     console.log('테스트 데이터 생성 완료');
     return { 
