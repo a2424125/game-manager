@@ -242,15 +242,15 @@ function getBossRecordPageHTML() {
       
       <form id="bossRecordForm">
         <div class="form-group">
-          <label class="form-label">보스/컨텐츠명</label>
-          <input type="text" class="form-input" id="bossName" required 
+          <label class="form-label" for="bossNameInput">보스/컨텐츠명</label>
+          <input type="text" class="form-input" id="bossNameInput" required 
                  placeholder="예: 발탄 하드, 비아키스 노말">
         </div>
         
         <div class="form-group">
-          <label class="form-label">참여자 스크린샷</label>
-          <div class="upload-area" onclick="document.getElementById('participantImage').click()">
-            <input type="file" id="participantImage" accept="image/*" style="display: none;" 
+          <label class="form-label" for="participantImageInput">참여자 스크린샷</label>
+          <div class="upload-area" onclick="document.getElementById('participantImageInput').click()">
+            <input type="file" id="participantImageInput" accept="image/*" style="display: none;" 
                    onchange="handleImageUpload(this)">
             <span class="material-icons upload-icon">cloud_upload</span>
             <div class="upload-text">클릭하여 이미지 업로드</div>
@@ -264,20 +264,20 @@ function getBossRecordPageHTML() {
         </div>
         
         <div class="form-group">
-          <label class="form-label">추가 참여자</label>
-          <input type="text" class="form-input" id="additionalParticipants" 
+          <label class="form-label" for="additionalParticipantsInput">추가 참여자</label>
+          <input type="text" class="form-input" id="additionalParticipantsInput" 
                  placeholder="콤마로 구분하여 입력 (예: 닉네임1, 닉네임2)">
         </div>
         
         <div class="form-group">
-          <label class="form-label">획득 아이템</label>
-          <input type="text" class="form-input" id="itemName" 
+          <label class="form-label" for="itemNameInput">획득 아이템</label>
+          <input type="text" class="form-input" id="itemNameInput" 
                  placeholder="예: 각인서, 보석, 골드">
         </div>
         
         <div class="form-group">
-          <label class="form-label">아이템 개수</label>
-          <input type="number" class="form-input" id="itemCount" min="0" value="0">
+          <label class="form-label" for="itemCountInput">아이템 개수</label>
+          <input type="number" class="form-input" id="itemCountInput" min="0" value="0">
         </div>
         
         <div class="participant-summary">
@@ -341,20 +341,20 @@ function getMembersPageHTML() {
       </div>
       <div class="members-filter-section">
         <div class="filter-group">
-          <label>닉네임 검색</label>
-          <input type="text" class="search-input" id="memberSearch" placeholder="닉네임을 입력하세요..." onkeyup="searchMembers(this.value)">
+          <label for="memberSearchInput">닉네임 검색</label>
+          <input type="text" class="search-input" id="memberSearchInput" placeholder="닉네임을 입력하세요..." onkeyup="searchMembers(this.value)">
         </div>
         <div class="filter-group">
-          <label>상태 필터</label>
-          <select class="filter-select" id="statusFilter" onchange="filterMembers(this.value)">
+          <label for="statusFilterSelect">상태 필터</label>
+          <select class="filter-select" id="statusFilterSelect" onchange="filterMembers(this.value)">
             <option value="all">전체</option>
             <option value="활성">활성</option>
             <option value="비활성">비활성</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>직업 필터</label>
-          <select class="filter-select" id="jobFilter" onchange="filterMembersByJob(this.value)">
+          <label for="jobFilterSelect">직업 필터</label>
+          <select class="filter-select" id="jobFilterSelect" onchange="filterMembersByJob(this.value)">
             <option value="all">모든 직업</option>
             <option value="버서커">버서커</option>
             <option value="바드">바드</option>
@@ -368,8 +368,8 @@ function getMembersPageHTML() {
           </select>
         </div>
         <div class="filter-group">
-          <label>정렬 기준</label>
-          <select class="filter-select" id="sortFilter" onchange="sortMembers(this.value)">
+          <label for="sortFilterSelect">정렬 기준</label>
+          <select class="filter-select" id="sortFilterSelect" onchange="sortMembers(this.value)">
             <option value="participation">참여횟수 순</option>
             <option value="name">닉네임 순</option>
             <option value="joinDate">가입일 순</option>
@@ -384,11 +384,11 @@ function getMembersPageHTML() {
       <div class="card-header">
         <h3>길드원 목록</h3>
         <div class="header-actions">
-          <button class="btn btn-sm btn-secondary" onclick="exportMembersList()">
+          <button class="btn btn-sm btn-secondary" onclick="forceRefreshMembersData()">
             <span class="material-icons">refresh</span>
             새로고침
           </button>
-          <button class="btn btn-sm btn-primary" onclick="refreshMembersList()">
+          <button class="btn btn-sm btn-primary" onclick="exportMembersList()">
             <span class="material-icons">download</span>
             목록 내보내기
           </button>
@@ -465,16 +465,16 @@ function getBossHistoryPageHTML() {
     
     <div class="filter-bar">
       <div class="filter-group">
-        <label>기간</label>
-        <select id="periodFilter" onchange="filterBossHistory()">
+        <label for="periodFilterSelect">기간</label>
+        <select id="periodFilterSelect" class="filter-select" onchange="filterBossHistory()">
           <option value="week">이번 주</option>
           <option value="month">이번 달</option>
           <option value="all">전체</option>
         </select>
       </div>
       <div class="filter-group">
-        <label>보스명</label>
-        <select id="bossFilter" onchange="filterBossHistory()">
+        <label for="bossFilterSelect">보스명</label>
+        <select id="bossFilterSelect" class="filter-select" onchange="filterBossHistory()">
           <option value="all">전체</option>
           <option value="발탄">발탄</option>
           <option value="비아키스">비아키스</option>
@@ -609,13 +609,13 @@ function getItemSalesPageHTML() {
           <input type="hidden" id="sellRecordId">
           
           <div class="form-group">
-            <label class="form-label">판매 금액</label>
-            <input type="number" class="form-input" id="salePrice" min="0" required>
+            <label class="form-label" for="salePriceInput">판매 금액</label>
+            <input type="number" class="form-input" id="salePriceInput" min="0" required>
           </div>
           
           <div class="form-group">
-            <label class="form-label">구매자 닉네임</label>
-            <input type="text" class="form-input" id="buyerNickname">
+            <label class="form-label" for="buyerNicknameInput">구매자 닉네임</label>
+            <input type="text" class="form-input" id="buyerNicknameInput">
           </div>
           
           <div class="commission-info">
@@ -669,22 +669,22 @@ function getGuildFundsPageHTML() {
       <form id="fundTransactionForm">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">구분</label>
-            <select class="form-input" id="transactionType" required>
+            <label class="form-label" for="transactionTypeSelect">구분</label>
+            <select class="form-input" id="transactionTypeSelect" required>
               <option value="입금">입금</option>
               <option value="출금">출금</option>
             </select>
           </div>
           
           <div class="form-group">
-            <label class="form-label">금액</label>
-            <input type="number" class="form-input" id="transactionAmount" min="0" required>
+            <label class="form-label" for="transactionAmountInput">금액</label>
+            <input type="number" class="form-input" id="transactionAmountInput" min="0" required>
           </div>
         </div>
         
         <div class="form-group">
-          <label class="form-label">내역</label>
-          <input type="text" class="form-input" id="transactionDescription" required
+          <label class="form-label" for="transactionDescriptionInput">내역</label>
+          <input type="text" class="form-input" id="transactionDescriptionInput" required
                  placeholder="예: 길드 이벤트 상금, 운영비 지출">
         </div>
         
@@ -735,16 +735,16 @@ function getDistributionPageHTML() {
       <form id="distributionForm">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">대상 주차</label>
-            <select class="form-input" id="targetWeek">
+            <label class="form-label" for="targetWeekSelect">대상 주차</label>
+            <select class="form-input" id="targetWeekSelect">
               <option value="${currentWeek}">${currentWeek}주차 (이번주)</option>
               <option value="${currentWeek - 1}">${currentWeek - 1}주차 (지난주)</option>
             </select>
           </div>
           
           <div class="form-group">
-            <label class="form-label">분배 총액</label>
-            <input type="number" class="form-input" id="distributionAmount" min="0" required placeholder="분배할 총 금액을 입력하세요">
+            <label class="form-label" for="distributionAmountInput">분배 총액</label>
+            <input type="number" class="form-input" id="distributionAmountInput" min="0" required placeholder="분배할 총 금액을 입력하세요">
           </div>
         </div>
         
@@ -799,8 +799,8 @@ function getStatisticsPageHTML() {
     
     <div class="stat-filters">
       <div class="filter-group">
-        <label>기간 선택</label>
-        <select class="form-input" id="statPeriod" onchange="loadStatisticsData()">
+        <label for="statPeriodSelect">기간 선택</label>
+        <select class="form-input" id="statPeriodSelect" onchange="loadStatisticsData()">
           <option value="week">이번 주</option>
           <option value="month">이번 달</option>
           <option value="all">전체</option>
