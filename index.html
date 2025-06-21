@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>길드 관리 시스템</title>
   
-  <!-- CSP 메타 태그 추가 - Google Apps Script 환경에서 필요한 권한 포함 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:; style-src 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.gstatic.com data: blob:;">
+  <!-- CSP 메타 태그 완전 제거 - Google Apps Script에서 무시됨 -->
   
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1109,7 +1108,7 @@ tbody tr:hover {
           <span>로그인</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" id="showRegisterBtn">
+        <button type="button" class="btn btn-secondary" onclick="showRegister()">
           <span class="material-icons">person_add</span>
           <span>회원가입</span>
         </button>
@@ -1221,7 +1220,7 @@ tbody tr:hover {
           <span>가입하기</span>
         </button>
         
-        <button type="button" class="btn btn-secondary" id="showLoginBtn">
+        <button type="button" class="btn btn-secondary" onclick="showLogin()">
           <span class="material-icons">arrow_back</span>
           <span>로그인으로 돌아가기</span>
         </button>
@@ -1245,11 +1244,11 @@ tbody tr:hover {
             <div class="user-role" id="userRole">일반 회원</div>
           </div>
           
-          <button class="btn-icon" title="비밀번호 변경" id="changePasswordBtn">
+          <button class="btn-icon" title="비밀번호 변경" onclick="showChangePasswordModal()">
             <span class="material-icons">lock</span>
           </button>
           
-          <button class="btn-icon" title="로그아웃" id="logoutBtn">
+          <button class="btn-icon" title="로그아웃" onclick="handleLogout()">
             <span class="material-icons">logout</span>
           </button>
         </div>
@@ -1259,47 +1258,47 @@ tbody tr:hover {
     <!-- 사이드바 -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-menu">
-        <a class="menu-item active" data-page="dashboard">
+        <a class="menu-item active" onclick="showPage('dashboard')">
           <span class="material-icons menu-icon">dashboard</span>
           <span>대시보드</span>
         </a>
         
-        <a class="menu-item" data-page="members">
+        <a class="menu-item" onclick="showPage('members')">
           <span class="material-icons menu-icon">people</span>
           <span>길드원 목록</span>
         </a>
         
-        <a class="menu-item" data-page="boss-record">
+        <a class="menu-item" onclick="showPage('boss-record')">
           <span class="material-icons menu-icon">add_circle</span>
           <span>보스참여 등록</span>
         </a>
         
-        <a class="menu-item" data-page="boss-history">
+        <a class="menu-item" onclick="showPage('boss-history')">
           <span class="material-icons menu-icon">history</span>
           <span>보스참여 히스토리</span>
         </a>
         
-        <a class="menu-item" data-page="item-sales">
+        <a class="menu-item" onclick="showPage('item-sales')">
           <span class="material-icons menu-icon">sell</span>
           <span>아이템 판매/분배</span>
         </a>
         
-        <a class="menu-item" data-page="guild-funds">
+        <a class="menu-item" onclick="showPage('guild-funds')">
           <span class="material-icons menu-icon">account_balance</span>
           <span>길드 자금 관리</span>
         </a>
         
-        <a class="menu-item" data-page="distribution">
+        <a class="menu-item" onclick="showPage('distribution')">
           <span class="material-icons menu-icon">payments</span>
           <span>주급 분배</span>
         </a>
         
-        <a class="menu-item" data-page="statistics">
+        <a class="menu-item" onclick="showPage('statistics')">
           <span class="material-icons menu-icon">bar_chart</span>
           <span>통계/보고서</span>
         </a>
         
-        <a class="menu-item admin-only" style="display: none;" data-page="admin">
+        <a class="menu-item admin-only" style="display: none;" onclick="showPage('admin')">
           <span class="material-icons menu-icon">admin_panel_settings</span>
           <span>관리자 설정</span>
         </a>
@@ -1314,7 +1313,7 @@ tbody tr:hover {
     </main>
 
     <!-- 모바일 메뉴 토글 버튼 -->
-    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()">
       <span class="material-icons">menu</span>
     </button>
   </div>
@@ -1324,7 +1323,7 @@ tbody tr:hover {
     <div class="modal-content">
       <div class="modal-header">
         <h3>비밀번호 변경</h3>
-        <button class="close-btn" id="closePasswordModal">×</button>
+        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
       </div>
       
       <form id="changePasswordForm">
@@ -1344,7 +1343,7 @@ tbody tr:hover {
         </div>
         
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelPasswordChange">취소</button>
+          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">취소</button>
           <button type="submit" class="btn btn-primary">비밀번호 변경</button>
         </div>
       </form>
@@ -1358,13 +1357,17 @@ var currentPage = 'dashboard';
 var membersCache = null;
 var isScriptReady = false;
 
-// ===== 안전한 Google Script 호출 래퍼 =====
+// ===== 안전한 Google Script 호출 래퍼 (eval 사용 없음) =====
 function safeGoogleScriptRun(functionName, successCallback, errorCallback) {
     try {
         if (typeof google !== 'undefined' && google.script && google.script.run) {
             var runner = google.script.run;
-            if (successCallback) runner = runner.withSuccessHandler(successCallback);
-            if (errorCallback) runner = runner.withFailureHandler(errorCallback);
+            if (successCallback) {
+                runner = runner.withSuccessHandler(successCallback);
+            }
+            if (errorCallback) {
+                runner = runner.withFailureHandler(errorCallback);
+            }
             return runner[functionName];
         } else {
             console.warn('Google Script API not available');
@@ -1522,42 +1525,24 @@ function initializeLoginScreen() {
 
 // ===== 폼 이벤트 리스너 설정 =====
 function setupFormEventListeners() {
-    // 로그인 폼
     var loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.removeEventListener('submit', handleLogin);
         loginForm.addEventListener('submit', handleLogin);
     }
     
-    // 회원가입 폼
     var registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.removeEventListener('submit', handleRegister);
         registerForm.addEventListener('submit', handleRegister);
     }
     
-    // 비밀번호 변경 폼
     var changePasswordForm = document.getElementById('changePasswordForm');
     if (changePasswordForm) {
         changePasswordForm.removeEventListener('submit', handleChangePassword);
         changePasswordForm.addEventListener('submit', handleChangePassword);
     }
     
-    // 회원가입 표시 버튼
-    var showRegisterBtn = document.getElementById('showRegisterBtn');
-    if (showRegisterBtn) {
-        showRegisterBtn.removeEventListener('click', showRegister);
-        showRegisterBtn.addEventListener('click', showRegister);
-    }
-    
-    // 로그인 표시 버튼
-    var showLoginBtn = document.getElementById('showLoginBtn');
-    if (showLoginBtn) {
-        showLoginBtn.removeEventListener('click', showLogin);
-        showLoginBtn.addEventListener('click', showLogin);
-    }
-    
-    // 비밀번호 확인 실시간 검증
     var regPassword = document.getElementById('regPassword');
     var regPasswordConfirm = document.getElementById('regPasswordConfirm');
     
@@ -1566,63 +1551,6 @@ function setupFormEventListeners() {
         regPassword.removeEventListener('input', checkPasswordMatch);
         regPasswordConfirm.addEventListener('input', checkPasswordMatch);
         regPassword.addEventListener('input', checkPasswordMatch);
-    }
-    
-    // 앱 내 버튼들
-    setupAppEventListeners();
-}
-
-// ===== 앱 이벤트 리스너 설정 =====
-function setupAppEventListeners() {
-    // 메뉴 클릭 이벤트
-    var menuItems = document.querySelectorAll('.menu-item');
-    for (var i = 0; i < menuItems.length; i++) {
-        menuItems[i].removeEventListener('click', handleMenuClick);
-        menuItems[i].addEventListener('click', handleMenuClick);
-    }
-    
-    // 로그아웃 버튼
-    var logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.removeEventListener('click', logout);
-        logoutBtn.addEventListener('click', logout);
-    }
-    
-    // 비밀번호 변경 버튼
-    var changePasswordBtn = document.getElementById('changePasswordBtn');
-    if (changePasswordBtn) {
-        changePasswordBtn.removeEventListener('click', showChangePasswordModal);
-        changePasswordBtn.addEventListener('click', showChangePasswordModal);
-    }
-    
-    // 모바일 메뉴 토글
-    var mobileMenuToggle = document.getElementById('mobileMenuToggle');
-    if (mobileMenuToggle) {
-        mobileMenuToggle.removeEventListener('click', toggleSidebar);
-        mobileMenuToggle.addEventListener('click', toggleSidebar);
-    }
-    
-    // 모달 닫기 버튼들
-    var closePasswordModal = document.getElementById('closePasswordModal');
-    var cancelPasswordChange = document.getElementById('cancelPasswordChange');
-    
-    if (closePasswordModal) {
-        closePasswordModal.removeEventListener('click', closeChangePasswordModal);
-        closePasswordModal.addEventListener('click', closeChangePasswordModal);
-    }
-    
-    if (cancelPasswordChange) {
-        cancelPasswordChange.removeEventListener('click', closeChangePasswordModal);
-        cancelPasswordChange.addEventListener('click', closeChangePasswordModal);
-    }
-}
-
-// ===== 메뉴 클릭 처리 =====
-function handleMenuClick(e) {
-    e.preventDefault();
-    var page = this.getAttribute('data-page');
-    if (page) {
-        showPage(page);
     }
 }
 
@@ -1778,10 +1706,8 @@ function onRegisterSuccess(result) {
     hideLoader();
     
     if (result && result.success) {
-        // 캐시 강제 초기화
         membersCache = null;
         
-        // 서버 캐시도 초기화 요청
         var clearCacheRunner = safeGoogleScriptRun('clearCache', 
             function(clearResult) {
                 console.log('서버 캐시 초기화 결과:', clearResult);
@@ -1890,7 +1816,7 @@ function handleChangePassword(e) {
 // ===== 앱 화면 표시 =====
 function showApp() {
     if (!currentUser) {
-        logout();
+        handleLogout();
         return;
     }
     
@@ -1931,13 +1857,12 @@ function showApp() {
         }
     }
     
-    setupFormEventListeners();
     console.log('✅ 앱 화면 표시 완료');
     showPage('dashboard');
 }
 
 // ===== 로그아웃 =====
-function logout() {
+function handleLogout() {
     console.log('🚪 로그아웃 처리');
     
     currentUser = null;
@@ -1972,7 +1897,7 @@ function logout() {
 // ===== 페이지 네비게이션 =====
 function showPage(page) {
     if (!validateCurrentSession()) {
-        logout();
+        handleLogout();
         return;
     }
     
@@ -1982,9 +1907,19 @@ function showPage(page) {
     var menuItems = document.querySelectorAll('.menu-item');
     for (var i = 0; i < menuItems.length; i++) {
         menuItems[i].classList.remove('active');
-        if (menuItems[i].getAttribute('data-page') === page) {
-            menuItems[i].classList.add('active');
+    }
+    
+    var targetMenuItem = null;
+    for (var i = 0; i < menuItems.length; i++) {
+        var onclick = menuItems[i].getAttribute('onclick');
+        if (onclick && onclick.includes("'" + page + "'")) {
+            targetMenuItem = menuItems[i];
+            break;
         }
+    }
+    
+    if (targetMenuItem) {
+        targetMenuItem.classList.add('active');
     }
     
     switch(page) {
@@ -2092,97 +2027,16 @@ function loadMembers() {
 }
 
 function getMembersPageHTML() {
-    return `
-        <div class="page-header">
-            <h1 class="page-title">길드원 목록</h1>
-            <p class="page-subtitle">전체 길드원 현황 및 참여 통계</p>
-        </div>
-        
-        <div class="members-stats">
-            <div class="member-stat-card">
-                <span class="stat-icon"><span class="material-icons">people</span></span>
-                <div>
-                    <div class="stat-number" id="totalMembersCount">로딩중...</div>
-                    <div class="stat-label">전체 길드원</div>
-                </div>
-            </div>
-            <div class="member-stat-card active">
-                <span class="stat-icon"><span class="material-icons">check_circle</span></span>
-                <div>
-                    <div class="stat-number" id="activeMembersCount">로딩중...</div>
-                    <div class="stat-label">활성 길드원</div>
-                </div>
-            </div>
-            <div class="member-stat-card inactive">
-                <span class="stat-icon"><span class="material-icons">cancel</span></span>
-                <div>
-                    <div class="stat-number" id="inactiveMembersCount">로딩중...</div>
-                    <div class="stat-label">비활성 길드원</div>
-                </div>
-            </div>
-            <div class="member-stat-card participation">
-                <span class="stat-icon"><span class="material-icons">sports_esports</span></span>
-                <div>
-                    <div class="stat-number" id="totalParticipationCount">로딩중...</div>
-                    <div class="stat-label">총 보스 참여</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h3>길드원 목록</h3>
-                <div class="header-actions">
-                    <button class="btn btn-sm btn-secondary" id="refreshMembersBtn">
-                        <span class="material-icons">refresh</span>
-                        새로고침
-                    </button>
-                </div>
-            </div>
-            
-            <div class="table-container">
-                <table class="modern-table" id="membersTable">
-                    <thead>
-                        <tr>
-                            <th>순위</th>
-                            <th>닉네임</th>
-                            <th>길드명</th>
-                            <th>서버</th>
-                            <th>직업</th>
-                            <th>가입일</th>
-                            <th>상태</th>
-                            <th>총 참여횟수</th>
-                            <th>참여율</th>
-                            <th>최근 참여</th>
-                            <th>권한</th>
-                        </tr>
-                    </thead>
-                    <tbody id="membersTableBody">
-                        <tr>
-                            <td colspan="11" style="text-align: center; padding: 40px; color: #00BCD4;">
-                                <div class="loading-members">
-                                    <span class="material-icons" style="font-size: 48px; margin-bottom: 16px; animation: spin 2s linear infinite;">refresh</span>
-                                    <p><strong>길드원 정보를 불러오는 중...</strong></p>
-                                    <p style="font-size: 14px; color: #999; margin-top: 8px;">잠시만 기다려주세요</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
+    return '<div class="page-header"><h1 class="page-title">길드원 목록</h1><p class="page-subtitle">전체 길드원 현황 및 참여 통계</p></div><div class="card"><p>길드원 목록을 불러오는 중입니다...</p></div>';
 }
 
 function loadMembersData() {
     console.log('📊 길드원 데이터 로드 시작');
     
-    // 캐시 강제 초기화
     var clearCacheRunner = safeGoogleScriptRun('clearCache', 
         function(clearResult) {
             console.log('서버 캐시 초기화 결과:', clearResult);
             
-            // 캐시 초기화 후 데이터 로드
             var membersDataRunner = safeGoogleScriptRun('forceRefreshMembers', 
                 function(members) {
                     console.log('📨 강제 새로고침된 길드원 데이터 수신:', members ? members.length : 0, '명');
@@ -2207,7 +2061,6 @@ function loadMembersData() {
                     displayMembersTable(members);
                     updateMembersStats(members);
                     
-                    // 새로고침 버튼 이벤트 추가
                     var refreshBtn = document.getElementById('refreshMembersBtn');
                     if (refreshBtn) {
                         refreshBtn.addEventListener('click', forceRefreshMembersData);
@@ -2229,7 +2082,6 @@ function loadMembersData() {
         },
         function(error) {
             console.log('❌ 캐시 초기화 실패:', error);
-            // 캐시 초기화가 실패해도 데이터 로드 시도
             loadMembersDataDirect();
         }
     );
@@ -2266,7 +2118,6 @@ function loadMembersDataDirect() {
             displayMembersTable(members);
             updateMembersStats(members);
             
-            // 새로고침 버튼 이벤트 추가
             var refreshBtn = document.getElementById('refreshMembersBtn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', forceRefreshMembersData);
