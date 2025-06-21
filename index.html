@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>길드 관리 시스템</title>
   
+  <!-- CSP 메타 태그 추가 - Google Apps Script 환경에서 필요한 권한 포함 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:; style-src 'self' 'unsafe-inline' https://*.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.gstatic.com data: blob:;">
+  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   
@@ -1775,7 +1778,22 @@ function onRegisterSuccess(result) {
     hideLoader();
     
     if (result && result.success) {
+        // 캐시 강제 초기화
         membersCache = null;
+        
+        // 서버 캐시도 초기화 요청
+        var clearCacheRunner = safeGoogleScriptRun('clearCache', 
+            function(clearResult) {
+                console.log('서버 캐시 초기화 결과:', clearResult);
+            },
+            function(error) {
+                console.log('서버 캐시 초기화 오류:', error);
+            }
+        );
+        if (clearCacheRunner) {
+            clearCacheRunner();
+        }
+        
         showMessage(result.message, 'success');
         
         document.getElementById('registerForm').reset();
@@ -2159,6 +2177,71 @@ function getMembersPageHTML() {
 function loadMembersData() {
     console.log('📊 길드원 데이터 로드 시작');
     
+    // 캐시 강제 초기화
+    var clearCacheRunner = safeGoogleScriptRun('clearCache', 
+        function(clearResult) {
+            console.log('서버 캐시 초기화 결과:', clearResult);
+            
+            // 캐시 초기화 후 데이터 로드
+            var membersDataRunner = safeGoogleScriptRun('forceRefreshMembers', 
+                function(members) {
+                    console.log('📨 강제 새로고침된 길드원 데이터 수신:', members ? members.length : 0, '명');
+                    
+                    if (!members) {
+                        console.log('⚠️ 데이터가 null');
+                        hideLoader();
+                        displayEmptyMembersMessage();
+                        return;
+                    }
+                    
+                    if (members.length === 0) {
+                        console.log('⚠️ 데이터가 빈 배열');
+                        hideLoader();
+                        displayEmptyMembersMessage();
+                        return;
+                    }
+                    
+                    console.log('✅ 정상 데이터 처리 시작');
+                    membersCache = members;
+                    hideLoader();
+                    displayMembersTable(members);
+                    updateMembersStats(members);
+                    
+                    // 새로고침 버튼 이벤트 추가
+                    var refreshBtn = document.getElementById('refreshMembersBtn');
+                    if (refreshBtn) {
+                        refreshBtn.addEventListener('click', forceRefreshMembersData);
+                    }
+                }, 
+                function(error) {
+                    console.log('❌ 길드원 데이터 로드 실패:', error);
+                    hideLoader();
+                    displayErrorMessage('회원 데이터를 불러오는데 실패했습니다: ' + (error.message || error));
+                }
+            );
+            
+            if (membersDataRunner) {
+                membersDataRunner();
+            } else {
+                hideLoader();
+                displayErrorMessage('시스템에 연결할 수 없습니다.');
+            }
+        },
+        function(error) {
+            console.log('❌ 캐시 초기화 실패:', error);
+            // 캐시 초기화가 실패해도 데이터 로드 시도
+            loadMembersDataDirect();
+        }
+    );
+    
+    if (clearCacheRunner) {
+        clearCacheRunner();
+    } else {
+        loadMembersDataDirect();
+    }
+}
+
+function loadMembersDataDirect() {
     var membersDataRunner = safeGoogleScriptRun('getMembers', 
         function(members) {
             console.log('📨 길드원 데이터 수신:', members ? members.length : 0, '명');
