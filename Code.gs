@@ -42,18 +42,18 @@ function clearCache() {
   }
 }
 
-// ===== 웹 앱 진입점 (CSP 헤더 개선) =====
+// ===== 웹 앱 진입점 (NATIVE 샌드박스 모드 사용) =====
 function doGet() {
   try {
     var template = HtmlService.createTemplateFromFile('index');
     
+    // NATIVE 샌드박스 모드 사용 - CSP 문제 해결
     var htmlOutput = template.evaluate()
-      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
+      .setSandboxMode(HtmlService.SandboxMode.NATIVE)
       .setTitle('길드 관리 시스템')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
     
-    // CSP 헤더 완전 제거 - HTML 내부에서 처리
+    console.log('✅ HTML 서비스 초기화 완료 (NATIVE 모드)');
     return htmlOutput;
     
   } catch (error) {
@@ -66,7 +66,6 @@ function doGet() {
           <title>길드 관리 시스템</title>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.googleapis.com https://*.gstatic.com https://*.googleusercontent.com data: blob:;">
         </head>
         <body>
           <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
@@ -76,9 +75,9 @@ function doGet() {
           </div>
         </body>
       </html>
-    `);
+    `).setSandboxMode(HtmlService.SandboxMode.NATIVE);
     
-    return errorHtml.setSandboxMode(HtmlService.SandboxMode.IFRAME);
+    return errorHtml;
   }
 }
 
@@ -107,6 +106,8 @@ function hashPassword(password) {
 // ===== 수정된 인증 관련 함수 =====
 function login(nickname, password) {
   try {
+    console.log('🔐 로그인 시도:', nickname);
+    
     const sheet = getSheet(SHEET_NAMES.MEMBERS);
     if (!sheet) {
       return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
@@ -115,17 +116,23 @@ function login(nickname, password) {
     const data = sheet.getDataRange().getValues();
     const hashedPassword = hashPassword(password);
     
+    console.log('📊 총 데이터 행 수:', data.length);
+    
     for (let i = 1; i < data.length; i++) {
-      // 유효한 회원 데이터인지 확인 (회원ID가 M으로 시작하고 닉네임이 있는지)
+      // 유효한 회원 데이터인지 확인
       if (!data[i][0] || !data[i][0].toString().startsWith('M') || !data[i][1]) {
         continue;
       }
       
-      // 인덱스 조정: 직업 필드가 추가되어 비밀번호는 5번째(인덱스 5), 상태는 7번째(인덱스 7), 관리자는 8번째(인덱스 8)
+      console.log('🔍 확인 중:', data[i][1], '상태:', data[i][7]);
+      
+      // 닉네임과 비밀번호, 상태 확인
       if (data[i][1] === nickname && data[i][5] === hashedPassword && data[i][7] === '활성') {
         
         // 로그인 성공 시 캐시 초기화
         clearCache();
+        
+        console.log('✅ 로그인 성공:', nickname);
         
         return {
           success: true,
@@ -134,13 +141,14 @@ function login(nickname, password) {
             nickname: data[i][1],
             guild: data[i][2],
             server: data[i][3],
-            job: data[i][4],           // 직업 필드 추가
+            job: data[i][4],
             isAdmin: data[i][8] === 'Y'
           }
         };
       }
     }
     
+    console.log('❌ 로그인 실패:', nickname);
     return { success: false, message: '닉네임 또는 비밀번호가 일치하지 않습니다.' };
     
   } catch (error) {
@@ -149,7 +157,7 @@ function login(nickname, password) {
   }
 }
 
-// ===== 비밀번호 변경 함수 추가 =====
+// ===== 비밀번호 변경 함수 =====
 function changePassword(userId, currentPassword, newPassword) {
   try {
     const sheet = getSheet(SHEET_NAMES.MEMBERS);
@@ -162,22 +170,16 @@ function changePassword(userId, currentPassword, newPassword) {
     const newHashedPassword = hashPassword(newPassword);
     
     for (let i = 1; i < data.length; i++) {
-      // 유효한 회원 데이터인지 확인
       if (!data[i][0] || !data[i][0].toString().startsWith('M') || !data[i][1]) {
         continue;
       }
       
-      // 사용자 ID가 일치하는지 확인
       if (data[i][0] === userId) {
-        // 현재 비밀번호가 일치하는지 확인 (인덱스 5가 비밀번호)
         if (data[i][5] !== currentHashedPassword) {
           return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
         }
         
-        // 새 비밀번호로 업데이트
-        sheet.getRange(i + 1, 6).setValue(newHashedPassword); // 6번째 열(인덱스 5)이 비밀번호
-        
-        // 캐시 클리어
+        sheet.getRange(i + 1, 6).setValue(newHashedPassword);
         clearCache();
         
         return { 
@@ -206,12 +208,10 @@ function validateSession(userId, nickname) {
     const data = sheet.getDataRange().getValues();
     
     for (let i = 1; i < data.length; i++) {
-      // 유효한 회원 데이터인지 확인
       if (!data[i][0] || !data[i][0].toString().startsWith('M') || !data[i][1]) {
         continue;
       }
       
-      // ID와 닉네임이 일치하고 활성 상태인지 확인
       if (data[i][0] === userId && data[i][1] === nickname && data[i][7] === '활성') {
         return {
           success: true,
@@ -238,10 +238,11 @@ function validateSession(userId, nickname) {
 // ===== 수정된 회원가입 함수 =====
 function register(userData) {
   try {
+    console.log('📝 회원가입 시도:', userData.nickname);
+    
     // 시트 초기화 먼저 실행
     const initResult = initializeMembersSheet();
     if (!initResult.success) {
-      // 시트 초기화 실패는 경고만 표시하고 진행
       console.warn('⚠️ 시트 초기화 경고:', initResult.message);
     }
     
@@ -250,7 +251,11 @@ function register(userData) {
       return { success: false, message: '회원 정보 시트를 찾을 수 없습니다.' };
     }
     
+    // 스프레드시트 강제 새로고침
+    SpreadsheetApp.flush();
+    
     const data = sheet.getDataRange().getValues();
+    console.log('📊 현재 데이터 행 수:', data.length);
     
     // 중복 닉네임 체크
     for (let i = 1; i < data.length; i++) {
@@ -277,7 +282,6 @@ function register(userData) {
     // 실제 회원 수를 계산하여 새로운 ID 생성
     let memberCount = 0;
     for (let i = 1; i < data.length; i++) {
-      // 회원ID와 닉네임이 모두 있는 행만 회원으로 간주
       if (data[i][0] && data[i][1] && data[i][0].toString().startsWith('M')) {
         memberCount++;
       }
@@ -287,27 +291,31 @@ function register(userData) {
     const today = new Date();
     const hashedPassword = hashPassword(userData.password);
     
-    // 새 행에 데이터 추가
     const newMemberData = [
-      newId,                    // 회원ID
-      userData.nickname,        // 닉네임
-      userData.guild,          // 길드명
-      userData.server,         // 서버
-      userData.job,            // 직업
-      hashedPassword,          // 비밀번호 (해시)
-      today,                   // 가입일
-      '활성',                  // 상태
-      'N'                      // 관리자 여부
+      newId,
+      userData.nickname,
+      userData.guild,
+      userData.server,
+      userData.job,
+      hashedPassword,
+      today,
+      '활성',
+      'N'
     ];
+    
+    console.log('➕ 새 회원 데이터 추가:', newMemberData);
     
     // 데이터 추가
     sheet.appendRow(newMemberData);
     
-    // 캐시 클리어 - 회원가입 후 즉시 반영되도록
+    // 강제 플러시
+    SpreadsheetApp.flush();
+    
+    // 캐시 클리어
     clearCache();
     
-    // 스프레드시트 강제 새로고침
-    SpreadsheetApp.flush();
+    // 잠시 대기
+    Utilities.sleep(1000);
     
     console.log('✅ 회원가입 완료:', userData.nickname);
     
@@ -333,7 +341,7 @@ function register(userData) {
   }
 }
 
-// ===== 회원 시트 초기화 함수 추가 =====
+// ===== 회원 시트 초기화 함수 =====
 function initializeMembersSheet() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -346,7 +354,7 @@ function initializeMembersSheet() {
         '비밀번호', '가입일', '상태', '관리자'
       ]);
       
-      // 강화된 관리자 계정 생성 (더 복잡한 비밀번호 사용)
+      // 강화된 관리자 계정 생성
       const strongAdminPassword = 'Admin#2025!Safe';
       const adminPasswordHash = hashPassword(strongAdminPassword);
       
@@ -354,6 +362,8 @@ function initializeMembersSheet() {
         'M0001', '관리자', '시스템', '관리자', '시스템관리자',
         adminPasswordHash, new Date(), '활성', 'Y'
       ]);
+      
+      SpreadsheetApp.flush();
       
       return { 
         success: true, 
@@ -382,6 +392,8 @@ function initializeMembersSheet() {
         adminPasswordHash, new Date(), '활성', 'Y'
       ]);
       
+      SpreadsheetApp.flush();
+      
       return { 
         success: true, 
         message: '관리자 계정이 생성되었습니다.\n\n🔑 관리자 계정 정보:\n• 닉네임: 관리자\n• 비밀번호: ' + strongAdminPassword 
@@ -399,7 +411,6 @@ function initializeMembersSheet() {
 // ===== 관리자 HTML 페이지 생성 함수 =====
 function getAdminHTML() {
   try {
-    // admin-pages.gs에서 관리자 HTML을 가져옴
     return getAdminPageHTML();
   } catch (error) {
     console.error('❌ 관리자 HTML 로드 오류:', error);
@@ -429,7 +440,9 @@ function getMembers() {
   console.log('=== getMembers 함수 시작 ===');
   
   try {
-    // 회원 정보 시트 접근
+    // 캐시 강제 클리어
+    clearCache();
+    
     const memberSheet = getSheet(SHEET_NAMES.MEMBERS);
     if (!memberSheet) {
       console.log('❌ 회원 정보 시트를 찾을 수 없음');
@@ -438,7 +451,9 @@ function getMembers() {
     
     console.log('✅ 회원 정보 시트 접근 성공');
     
-    // 시트에 데이터가 있는지 확인
+    // 스프레드시트 강제 새로고침
+    SpreadsheetApp.flush();
+    
     const lastRow = memberSheet.getLastRow();
     console.log('마지막 행 번호:', lastRow);
     
@@ -447,8 +462,6 @@ function getMembers() {
       return [];
     }
     
-    // 회원 데이터 조회 - 스프레드시트 강제 새로고침 후
-    SpreadsheetApp.flush();
     const memberData = memberSheet.getDataRange().getValues();
     console.log('조회된 데이터 행 수:', memberData.length);
     console.log('헤더:', memberData[0]);
@@ -457,7 +470,6 @@ function getMembers() {
     
     console.log('=== 회원 데이터 처리 시작 ===');
     
-    // 각 회원 데이터 처리 (헤더 제외)
     for (let i = 1; i < memberData.length; i++) {
       try {
         const row = memberData[i];
@@ -483,7 +495,7 @@ function getMembers() {
           continue;
         }
         
-        // 회원 정보 객체 생성 (보스 참여 기록은 나중에 처리)
+        // 회원 정보 객체 생성
         const memberInfo = {
           id: memberId,
           nickname: nickname,
@@ -493,7 +505,7 @@ function getMembers() {
           joinDate: row[6] || new Date(),
           status: row[7] ? String(row[7]).trim() : '활성',
           isAdmin: row[8] ? (String(row[8]).trim() === 'Y') : false,
-          participationCount: 0, // 기본값
+          participationCount: 0,
           lastParticipation: null
         };
         
@@ -502,13 +514,13 @@ function getMembers() {
         
       } catch (rowError) {
         console.log(`${i}행 처리 중 오류 발생:`, rowError.message);
-        continue; // 개별 행 오류는 무시하고 계속 진행
+        continue;
       }
     }
     
     console.log(`=== 기본 회원 정보 처리 완료: ${members.length}명 ===`);
     
-    // 보스 참여 기록 조회 (안전하게 처리)
+    // 보스 참여 기록 조회
     try {
       console.log('=== 보스 참여 기록 조회 시작 ===');
       const bossSheet = getSheet(SHEET_NAMES.BOSS_RECORDS);
@@ -518,7 +530,6 @@ function getMembers() {
         const bossData = bossSheet.getDataRange().getValues();
         console.log('보스 기록 행 수:', bossData.length);
         
-        // 각 회원의 보스 참여횟수 계산
         for (let i = 0; i < members.length; i++) {
           const member = members[i];
           let participationCount = 0;
@@ -533,7 +544,6 @@ function getMembers() {
                   lastParticipation = participationDate;
                 }
               } catch (dateError) {
-                // 날짜 파싱 오류는 무시
                 console.log('날짜 파싱 오류 무시:', dateError);
               }
             }
@@ -551,7 +561,6 @@ function getMembers() {
       }
     } catch (bossError) {
       console.log('⚠️ 보스 기록 처리 중 오류 (무시하고 진행):', bossError.message);
-      // 보스 기록 오류는 무시하고 회원 목록은 반환
     }
     
     // 참여횟수 순으로 정렬
@@ -565,7 +574,6 @@ function getMembers() {
   } catch (error) {
     console.log('❌ getMembers 전체 오류:', error.message);
     console.log('오류 스택:', error.stack);
-    // 오류 발생시에도 빈 배열 대신 기본 데이터라도 반환 시도
     return [];
   }
 }
@@ -587,7 +595,7 @@ function forceRefreshMembers() {
   }
   
   // 약간의 지연 후 데이터 조회
-  Utilities.sleep(500); // 0.5초 대기
+  Utilities.sleep(500);
   
   // 회원 목록 다시 조회
   const members = getMembers();
@@ -613,35 +621,29 @@ function validateMemberData() {
     const warnings = [];
     let validMembers = 0;
     
-    // 헤더 검증
     if (data.length === 0) {
       errors.push('시트가 완전히 비어있습니다');
     } else if (data[0][0] !== '회원ID' || data[0][1] !== '닉네임') {
       warnings.push('헤더가 올바르지 않을 수 있습니다');
     }
     
-    // 데이터 검증
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
-      // 빈 행 체크
       if (!row[0] && !row[1] && !row[2]) {
-        continue; // 완전히 빈 행은 무시
+        continue;
       }
       
-      // 회원ID 검증
       if (!row[0] || !row[0].toString().startsWith('M')) {
         warnings.push(`행 ${i + 1}: 잘못된 회원ID (${row[0]})`);
         continue;
       }
       
-      // 닉네임 검증
       if (!row[1] || !row[1].toString().trim()) {
         errors.push(`행 ${i + 1}: 닉네임이 비어있음`);
         continue;
       }
       
-      // 필수 필드 검증
       if (!row[2] || !row[3] || !row[4]) {
         warnings.push(`행 ${i + 1}: 일부 필수 필드가 비어있음 (${row[1]})`);
       }
@@ -854,7 +856,6 @@ function initializeAllSheets() {
         '비밀번호', '가입일', '상태', '관리자'
       ]);
       
-      // 강화된 관리자 계정 추가
       const strongAdminPassword = 'Admin#2025!Safe';
       const testAdminPassword = hashPassword(strongAdminPassword);
       memberSheet.appendRow([
@@ -895,6 +896,9 @@ function initializeAllSheets() {
     } else {
       results.push('길드자금: 기존 시트 확인됨');
     }
+    
+    // 강제 플러시
+    SpreadsheetApp.flush();
     
     // 캐시 초기화
     clearCache();
@@ -965,7 +969,6 @@ function ensureAdminAccount() {
     const data = sheet.getDataRange().getValues();
     let hasAdmin = false;
     
-    // 기존 관리자 계정 확인
     for (let i = 1; i < data.length; i++) {
       if (data[i][1] === '관리자' && data[i][8] === 'Y') {
         hasAdmin = true;
@@ -973,7 +976,6 @@ function ensureAdminAccount() {
       }
     }
     
-    // 관리자 계정이 없으면 생성
     if (!hasAdmin) {
       const strongAdminPassword = 'Admin#2025!Safe';
       const adminPassword = hashPassword(strongAdminPassword);
@@ -990,6 +992,7 @@ function ensureAdminAccount() {
       ];
       
       sheet.appendRow(adminData);
+      SpreadsheetApp.flush();
       
       return { 
         success: true, 
@@ -1078,13 +1081,11 @@ function testMemberData() {
     console.log('헤더 행:', data[0]);
     console.log('총', data.length, '행의 데이터 (헤더 포함)');
     
-    // 처음 몇 행의 데이터 타입 확인
     for (let i = 1; i < Math.min(data.length, 6); i++) {
       console.log(`${i}행 데이터:`, data[i]);
       console.log(`${i}행 타입:`, data[i].map(cell => typeof cell));
     }
     
-    // 첫 번째 유효한 행 상세 분석
     if (data.length > 1) {
       const firstRow = data[1];
       console.log('첫 번째 유효한 행 상세:');
@@ -1096,7 +1097,6 @@ function testMemberData() {
       console.log('- 전체 행:', firstRow);
     }
     
-    // 유효한 회원 수 계산
     let validCount = 0;
     let emptyCount = 0;
     
