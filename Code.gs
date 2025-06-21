@@ -49,7 +49,7 @@ function doGet() {
     
     // NATIVE 샌드박스 모드 사용 - CSP 문제 해결
     var htmlOutput = template.evaluate()
-      .setSandboxMode(HtmlService.SandboxMode.NATIVE)
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
       .setTitle('길드 관리 시스템')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
     
@@ -75,7 +75,7 @@ function doGet() {
           </div>
         </body>
       </html>
-    `).setSandboxMode(HtmlService.SandboxMode.NATIVE);
+    `).setSandboxMode(HtmlService.SandboxMode.IFRAME);
     
     return errorHtml;
   }
@@ -1118,4 +1118,7 @@ function testMemberData() {
     console.log('오류 스택:', error.stack);
     return false;
   }
+}
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
